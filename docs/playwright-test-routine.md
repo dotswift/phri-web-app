@@ -65,6 +65,8 @@ Run with Playwright MCP after starting the dev server (`npm run dev` → http://
 4. Verify: eventually redirects to /dashboard OR shows "partial" state
 5. Screenshot: progress-spinner.png, progress-complete.png
 
+---
+
 ## Test 7: Dashboard Page
 
 1. On /dashboard, verify: persona name in heading (e.g. "Jane's Health Record")
@@ -73,60 +75,9 @@ Run with Playwright MCP after starting the dev server (`npm run dev` → http://
 4. Verify: at least some cards show non-zero counts
 5. Verify: 3 CTA cards (Timeline, Deep Dive, Chat)
 6. Verify: Recent Activity section with items
-7. Click a summary card (e.g. Conditions)
-8. Verify: navigates to /timeline?resourceType=Condition
-9. Screenshot: dashboard.png
+7. Screenshot: dashboard.png
 
-## Test 8: Timeline Page
-
-1. On /timeline, verify: "Timeline" heading
-2. Verify: filter controls (Resource Type dropdown, From/To date inputs)
-3. Verify: list of timeline items with cards
-4. Verify: each card has displayText, resourceType badge, date, Source badge
-5. Verify: pagination controls (page X of Y, Previous/Next)
-6. Click "Next" page button
-7. Verify: page number changes
-8. Change resource type filter to "Condition"
-9. Verify: list updates to show only conditions
-10. Click a timeline card
-11. Verify: detail drawer slides open from right
-12. Verify: drawer shows resource type, display text, date, source
-13. Verify: "View Raw FHIR" collapsible exists
-14. Screenshot: timeline.png, timeline-filtered.png, timeline-detail.png
-
-## Test 9: Medications Page
-
-1. Navigate to /medications
-2. Verify: "Medications" heading
-3. Verify: status dropdown, search input
-4. Verify: empty state message (sandbox has 0 meds)
-5. Screenshot: medications-empty.png
-
-## Test 10: Immunizations Page
-
-1. Navigate to /immunizations
-2. Verify: "Immunizations" heading
-3. Verify: search input
-4. Verify: immunization items grouped by year
-5. Verify: total count shown
-6. Type in search box (e.g. "influenza")
-7. Verify: list filters
-8. Click an immunization item
-9. Verify: detail drawer opens
-10. Screenshot: immunizations.png, immunizations-detail.png
-
-## Test 11: Medication Insights Page
-
-1. Navigate to /medications/insights
-2. Verify: "Medication Insights" heading
-3. Verify: 3 summary stat cards (Unique, Active, Stopped — all 0 for sandbox)
-4. Verify: empty state message
-5. Verify: Methodology accordion exists
-6. Click Methodology accordion
-7. Verify: description, numbered steps, bulleted limitations visible
-8. Screenshot: insights.png, insights-methodology.png
-
-## Test 12: Chat Page
+## Test 8: Chat Page
 
 1. Navigate to /chat
 2. Verify: "Ask about your health records" placeholder text
@@ -143,6 +94,58 @@ Run with Playwright MCP after starting the dev server (`npm run dev` → http://
 13. Verify: popover shows excerpt, resource type, date
 14. Verify: "New Chat" button works (clears messages)
 15. Screenshot: chat-empty.png, chat-response.png, chat-citation.png
+
+---
+
+## Test 9: Timeline Page
+
+1. Navigate to /timeline
+2. Verify: "Timeline" heading
+3. Verify: filter controls (Resource Type dropdown, From/To date inputs)
+4. Verify: list of timeline items with cards
+5. Verify: each card has displayText, resourceType badge, date, Source badge
+6. Verify: pagination controls (page X of Y, Previous/Next)
+7. Click "Next" page button
+8. Verify: page number changes
+9. Change resource type filter to "Condition"
+10. Verify: list updates to show only conditions
+11. Click a timeline card
+12. Verify: detail drawer slides open from right
+13. Verify: drawer shows resource type, display text, date, source
+14. Verify: "View Raw FHIR" collapsible exists
+15. Screenshot: timeline.png, timeline-filtered.png, timeline-detail.png
+
+## Test 10: Medications Page
+
+1. Navigate to /medications
+2. Verify: "Medications" heading
+3. Verify: status dropdown, search input
+4. Verify: empty state message (sandbox has 0 meds)
+5. Screenshot: medications-empty.png
+
+## Test 11: Immunizations Page
+
+1. Navigate to /immunizations
+2. Verify: "Immunizations" heading
+3. Verify: search input
+4. Verify: immunization items grouped by year
+5. Verify: total count shown
+6. Type in search box (e.g. "influenza")
+7. Verify: list filters
+8. Click an immunization item
+9. Verify: detail drawer opens
+10. Screenshot: immunizations.png, immunizations-detail.png
+
+## Test 12: Medication Insights Page
+
+1. Navigate to /medications/insights
+2. Verify: "Medication Insights" heading
+3. Verify: 3 summary stat cards (Unique, Active, Stopped — all 0 for sandbox)
+4. Verify: empty state message
+5. Verify: Methodology accordion exists
+6. Click Methodology accordion
+7. Verify: description, numbered steps, bulleted limitations visible
+8. Screenshot: insights.png, insights-methodology.png
 
 ## Test 13: Settings Page
 
