@@ -1,0 +1,238 @@
+// --- Auth ---
+export interface User {
+  id: string;
+  email: string;
+}
+
+// --- Consent ---
+export interface Consent {
+  id: string;
+  userId: string;
+  consentedAt: string;
+  dataUsage: boolean;
+  llmDataFlow: boolean;
+  deletionRights: boolean;
+}
+
+// --- Patient ---
+export interface Patient {
+  id: string;
+  userId: string;
+  metriportPatientId: string;
+  sandboxPersona: string;
+  facilityId: string;
+  status: "pending" | "querying" | "partial" | "ready" | "failed";
+  hasPartialData: boolean;
+  queryRequestId: string | null;
+  lastSyncedAt: string | null;
+  createdAt: string;
+}
+
+export type Persona = "Jane" | "Chris" | "Ollie" | "Kyla" | "Andreas";
+
+export interface PatientStatus {
+  status: "pending" | "querying" | "partial" | "ready" | "failed";
+}
+
+// --- Citation ---
+export interface Citation {
+  resourceType: string;
+  resourceId: string;
+  excerpt: string | null;
+  date: string | null;
+  source: string | null;
+}
+
+// --- Dashboard ---
+export interface DashboardResponse {
+  patient: {
+    id: string;
+    sandboxPersona: string;
+    status: string;
+    lastSyncedAt: string | null;
+  };
+  summary: {
+    totalResources: number;
+    conditions: number;
+    medications: number;
+    activeMedications: number;
+    observations: number;
+    immunizations: number;
+    encounters: number;
+    allergies: number;
+    procedures: number;
+    diagnosticReports: number;
+  };
+  recentActivity: Array<{
+    id: string;
+    resourceType: string;
+    displayText: string | null;
+    dateRecorded: string | null;
+    source: string | null;
+  }>;
+}
+
+// --- Timeline ---
+export interface TimelineItem {
+  id: string;
+  resourceType: string;
+  displayText: string | null;
+  dateRecorded: string | null;
+  source: string | null;
+  citation: Citation;
+}
+
+export interface TimelineResponse {
+  items: TimelineItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface TimelineDetail {
+  id: string;
+  resourceType: string;
+  resourceId: string;
+  displayText: string | null;
+  dateRecorded: string | null;
+  source: string | null;
+  data: unknown;
+  citation: Citation;
+}
+
+// --- Medications ---
+export interface MedicationItem {
+  id: string;
+  name: string | null;
+  status: string | null;
+  dosage: string | null;
+  dateRecorded: string | null;
+  source: string | null;
+  citation: Citation;
+}
+
+export interface MedicationsResponse {
+  active: MedicationItem[];
+  other: MedicationItem[];
+}
+
+export interface MedicationDetail {
+  id: string;
+  resourceType: string;
+  resourceId: string;
+  displayText: string | null;
+  dateRecorded: string | null;
+  source: string | null;
+  data: unknown;
+  citation: Citation;
+}
+
+// --- Medication Insights ---
+export interface DuplicateOccurrence {
+  id: string;
+  date: string | null;
+  source: string | null;
+  dosage: string | null;
+  citation: Citation;
+}
+
+export interface DuplicateGroup {
+  drug: string;
+  occurrences: DuplicateOccurrence[];
+}
+
+export interface ChangeEntry {
+  id: string;
+  date: string | null;
+  dosage: string | null;
+  status: string | null;
+  citation: Citation;
+}
+
+export interface ChangeGroup {
+  drug: string;
+  history: ChangeEntry[];
+}
+
+export interface MedicationInsightsResponse {
+  insights: {
+    duplicates: DuplicateGroup[];
+    changes: ChangeGroup[];
+    summary: {
+      totalUnique: number;
+      totalActive: number;
+      totalStopped: number;
+    };
+  };
+  methodology: {
+    description: string;
+    steps: string[];
+    limitations: string[];
+  };
+}
+
+// --- Immunizations ---
+export interface ImmunizationItem {
+  id: string;
+  name: string | null;
+  status: string | null;
+  dateRecorded: string | null;
+  source: string | null;
+  citation: Citation;
+}
+
+export interface ImmunizationsResponse {
+  items: ImmunizationItem[];
+  total: number;
+}
+
+export interface ImmunizationDetail {
+  id: string;
+  resourceType: string;
+  resourceId: string;
+  displayText: string | null;
+  dateRecorded: string | null;
+  source: string | null;
+  data: unknown;
+  citation: Citation;
+}
+
+// --- Chat ---
+export interface ChatCitation {
+  index: number;
+  resourceType: string;
+  fhirResourceId: string;
+  excerpt: string;
+  date: string | null;
+}
+
+export type ChatSSEEvent =
+  | { type: "text_delta"; text: string }
+  | { type: "citations"; citations: ChatCitation[] }
+  | { type: "done"; sessionId: string; messageId: string }
+  | { type: "error"; error: string };
+
+export interface ChatSession {
+  id: string;
+  createdAt: string;
+  preview: string | null;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  citations: ChatCitation[] | null;
+  createdAt: string;
+}
+
+// --- Settings ---
+export interface SettingsResponse {
+  aiModeEnabled: boolean;
+  connectedPersona: string | null;
+  patientStatus: string | null;
+  lastSyncedAt: string | null;
+}
