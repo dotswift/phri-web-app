@@ -116,7 +116,7 @@ test.describe.serial("PHRI user journey", () => {
   // ── Test 6: Progress page — wait for data retrieval ───────────────
   test("progress page — wait for data retrieval", async () => {
     await expect(
-      page.getByText("Retrieving Health Records"),
+      page.getByText(/retrieving your health records/i),
     ).toBeVisible();
 
     // Wait for redirect to /dashboard (data retrieval can take up to 30s)

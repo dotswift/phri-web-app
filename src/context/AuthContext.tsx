@@ -39,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    setLoading(true);
     setUser(session.user);
 
     try {
@@ -77,16 +78,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadUserState]);
 
   const signIn = async (email: string, password: string) => {
+    setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-    if (error) throw error;
+    if (error) {
+      setLoading(false);
+      throw error;
+    }
   };
 
   const signUp = async (email: string, password: string) => {
+    setLoading(true);
     const { error } = await supabase.auth.signUp({ email, password });
-    if (error) throw error;
+    if (error) {
+      setLoading(false);
+      throw error;
+    }
   };
 
   const signOut = async () => {
