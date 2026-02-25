@@ -23,5 +23,10 @@ dist-ssr
 *.sln
 *.sw?
 
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+
 # Environment
 .env

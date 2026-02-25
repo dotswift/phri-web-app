@@ -1,5 +1,7 @@
 # PHRI Frontend — Playwright MCP Testing Routine
 
+> **Automated version available:** Run `npm run test:e2e` to execute the automated spec in `e2e/app.spec.ts`.
+
 Run with Playwright MCP after starting the dev server (`npm run dev` → http://localhost:5173).
 
 ## Pre-requisites
