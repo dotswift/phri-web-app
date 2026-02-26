@@ -15,8 +15,21 @@ export default defineConfig({
   },
   projects: [
     {
-      name: "chromium",
+      name: "app-tests",
       use: { browserName: "chromium" },
+      testMatch: "app.spec.ts",
+    },
+    {
+      name: "accessibility-tests",
+      use: { browserName: "chromium" },
+      testMatch: "accessibility.spec.ts",
+      dependencies: ["app-tests"],
+    },
+    {
+      name: "demo-tests",
+      use: { browserName: "chromium" },
+      testMatch: "demo.spec.ts",
+      dependencies: ["accessibility-tests"],
     },
   ],
   webServer: {

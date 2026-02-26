@@ -14,6 +14,13 @@ export function useChat() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>();
   const streamingTextRef = useRef("");
+  const abortRef = useRef<AbortController | null>(null);
+
+  const stopStreaming = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setIsStreaming(false);
+  }, []);
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -21,6 +28,9 @@ export function useChat() {
       setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
       setIsStreaming(true);
       streamingTextRef.current = "";
+
+      const controller = new AbortController();
+      abortRef.current = controller;
 
       try {
         await streamChat(text, sessionId, (event: ChatSSEEvent) => {
@@ -76,8 +86,12 @@ export function useChat() {
               break;
             }
           }
-        });
+        }, controller.signal);
       } catch (err) {
+        if ((err as Error).name === "AbortError") {
+          // User stopped generation — keep partial content
+          return;
+        }
         setMessages((prev) => {
           const updated = [...prev];
           updated[updated.length - 1] = {
@@ -87,6 +101,7 @@ export function useChat() {
           return updated;
         });
       } finally {
+        abortRef.current = null;
         setIsStreaming(false);
       }
     },
@@ -100,5 +115,6 @@ export function useChat() {
     setSessionId,
     setMessages,
     sendMessage,
+    stopStreaming,
   };
 }

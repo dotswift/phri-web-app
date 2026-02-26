@@ -17,6 +17,7 @@ export async function streamChat(
   message: string,
   sessionId: string | undefined,
   onEvent: (event: ChatSSEEvent) => void,
+  signal?: AbortSignal,
 ): Promise<void> {
   const {
     data: { session },
@@ -30,6 +31,7 @@ export async function streamChat(
       Authorization: `Bearer ${session.access_token}`,
     },
     body: JSON.stringify({ message, sessionId }),
+    signal,
   });
 
   if (!res.ok) {
@@ -41,29 +43,33 @@ export async function streamChat(
   const decoder = new TextDecoder();
   let buffer = "";
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
 
-    buffer += decoder.decode(value, { stream: true });
+      buffer += decoder.decode(value, { stream: true });
 
-    const lines = buffer.split("\n");
-    buffer = lines.pop() ?? "";
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
 
-    for (const line of lines) {
-      if (line.startsWith("data: ")) {
-        const json = line.slice(6);
-        try {
-          const event: ChatSSEEvent = JSON.parse(json);
-          onEvent(event);
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const json = line.slice(6);
+          try {
+            const event: ChatSSEEvent = JSON.parse(json);
+            onEvent(event);
 
-          if (event.type === "done" || event.type === "error") {
-            return;
+            if (event.type === "done" || event.type === "error") {
+              return;
+            }
+          } catch {
+            // Skip malformed lines
           }
-        } catch {
-          // Skip malformed lines
         }
       }
     }
+  } finally {
+    reader.releaseLock();
   }
 }

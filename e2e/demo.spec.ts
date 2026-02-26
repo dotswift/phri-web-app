@@ -34,42 +34,60 @@ test.describe.serial("PHRI Demo Walkthrough", () => {
 
     // Sign in
     await page.getByRole("button", { name: /sign in/i }).click();
-    await expect(page).toHaveURL(/\/consent/, { timeout: 15_000 });
+    await expect(page).toHaveURL(/\/(consent|home|connect|progress)/, { timeout: 15_000 });
     await page.waitForTimeout(PAUSE);
 
-    // Consent — check boxes one by one with pauses
-    await page.locator("#dataUsage").check({ force: true });
-    await page.waitForTimeout(800);
-    await page.locator("#llmDataFlow").check({ force: true });
-    await page.waitForTimeout(800);
-    await page.locator("#deletionRights").check({ force: true });
-    await page.waitForTimeout(1000);
+    // Handle consent flow if needed (new user)
+    if (page.url().includes("/consent")) {
+      // Step 1: Inform
+      await page
+        .getByRole("button", { name: /i understand — continue/i })
+        .click();
 
-    const consentResponse = page.waitForResponse(
-      (resp) =>
-        resp.url().includes("/api/consent") &&
-        resp.request().method() === "POST",
-    );
-    await page.getByRole("button", { name: /i agree/i }).click();
-    await consentResponse;
-    await expect(page).toHaveURL(/\/connect/, { timeout: 15_000 });
-    await page.waitForTimeout(PAUSE);
+      // Step 2: Select — check all consent checkboxes
+      await page.locator("#dataUsage").check({ force: true });
+      await page.waitForTimeout(800);
+      await page.locator("#llmDataFlow").check({ force: true });
+      await page.waitForTimeout(800);
+      await page.locator("#deletionRights").check({ force: true });
+      await page.waitForTimeout(1000);
 
-    // Select Chris Smith
-    await page.getByText("Chris Smith", { exact: true }).click();
-    await page.waitForTimeout(1500);
+      await page
+        .getByRole("button", { name: /review & confirm/i })
+        .click();
 
-    const connectResponse = page.waitForResponse(
-      (resp) => resp.url().includes("/api/patient/connect"),
-    );
-    await page
-      .getByRole("button", { name: /connect selected persona/i })
-      .click();
-    await connectResponse;
-    await expect(page).toHaveURL(/\/progress/, { timeout: 15_000 });
+      // Step 3: Confirm
+      const consentResponse = page.waitForResponse(
+        (resp) =>
+          resp.url().includes("/api/consent") &&
+          resp.request().method() === "POST",
+      );
+      await page.getByRole("button", { name: /i agree/i }).click();
+      await consentResponse;
+      await expect(page).toHaveURL(/\/connect/, { timeout: 15_000 });
+      await page.waitForTimeout(PAUSE);
+    }
 
-    // Wait for data retrieval → redirect to dashboard
-    await expect(page).toHaveURL(/\/dashboard/, { timeout: 45_000 });
+    if (page.url().includes("/connect")) {
+      // Select Chris Smith
+      await page.getByText("Chris Smith", { exact: true }).click();
+      await page.waitForTimeout(1500);
+
+      const connectResponse = page.waitForResponse(
+        (resp) => resp.url().includes("/api/patient/connect"),
+      );
+      await page
+        .getByRole("button", { name: /connect selected persona/i })
+        .click();
+      await connectResponse;
+      await expect(page).toHaveURL(/\/progress/, { timeout: 15_000 });
+    }
+
+    if (page.url().includes("/progress")) {
+      // Wait for data retrieval → redirect to home
+      await expect(page).toHaveURL(/\/home/, { timeout: 45_000 });
+    }
+
     await page.waitForTimeout(PAUSE);
   });
 
@@ -78,8 +96,8 @@ test.describe.serial("PHRI Demo Walkthrough", () => {
     test.slow();
 
     await expect(
-      page.getByRole("heading", { name: /chris.*health record/i }),
-    ).toBeVisible();
+      page.getByRole("heading", { name: /good (morning|afternoon|evening), chris/i }),
+    ).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(PAUSE);
 
     // Hover over summary cards
@@ -94,14 +112,12 @@ test.describe.serial("PHRI Demo Walkthrough", () => {
       await page.waitForTimeout(1000);
     }
 
-    // Hover over CTA cards
-    await page
-      .getByText("Browse all health events chronologically")
-      .hover();
+    // Hover over quick action pills
+    await page.getByRole("link", { name: /timeline/i }).hover();
     await page.waitForTimeout(1200);
-    await page.getByText("Medication insights & analysis").hover();
+    await page.getByRole("link", { name: /deep dive/i }).hover();
     await page.waitForTimeout(1200);
-    await page.getByText("Ask questions about your records").hover();
+    await page.getByRole("link", { name: /chat/i }).last().hover();
     await page.waitForTimeout(1200);
 
     // Pause on Recent Activity
@@ -191,8 +207,13 @@ test.describe.serial("PHRI Demo Walkthrough", () => {
   test("browse the timeline", async () => {
     test.slow();
 
-    // Navigate via sidebar
-    await page.getByRole("link", { name: "Timeline", exact: true }).click();
+    // Navigate via sidebar — expand Records sub-menu if collapsed
+    const timelineLink = page.getByRole("link", { name: "Timeline", exact: true });
+    if (!(await timelineLink.isVisible())) {
+      await page.getByRole("button", { name: /records/i }).click();
+      await page.waitForTimeout(500);
+    }
+    await timelineLink.click();
     await expect(
       page.getByRole("heading", { name: "Timeline" }),
     ).toBeVisible();

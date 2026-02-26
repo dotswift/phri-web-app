@@ -10,4 +10,15 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          recharts: ["recharts"],
+          motion: ["motion"],
+          router: ["react-router-dom"],
+        },
+      },
+    },
+  },
 });

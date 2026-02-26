@@ -9,6 +9,8 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { Syringe } from "lucide-react";
+import { ImmunizationTimeline } from "@/components/charts/ImmunizationTimeline";
+import { AnimatedList } from "@/components/shared/AnimatedList";
 import type { ImmunizationsResponse, ImmunizationItem } from "@/types/api";
 
 export function ImmunizationsPage() {
@@ -94,6 +96,24 @@ export function ImmunizationsPage() {
         />
       ) : (
         <div className="space-y-4">
+          {/* Immunization timeline chart */}
+          {data.items.some((item) => item.dateRecorded) && (
+            <Card className="p-4">
+              <ImmunizationTimeline
+                items={data.items
+                  .filter((item): item is ImmunizationItem & { dateRecorded: string; name: string } =>
+                    item.dateRecorded !== null && item.name !== null
+                  )
+                  .map((item) => ({
+                    name: item.name,
+                    date: item.dateRecorded,
+                    status: item.status,
+                  }))}
+              />
+            </Card>
+          )}
+
+          <AnimatedList className="space-y-4">
           {Object.entries(grouped).map(([year, items]) => (
             <Card key={year}>
               <CardHeader>
@@ -122,6 +142,7 @@ export function ImmunizationsPage() {
               </CardContent>
             </Card>
           ))}
+          </AnimatedList>
         </div>
       )}
 

@@ -64,13 +64,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Track whether getSession has resolved so onAuthStateChange
+    // doesn't trigger a duplicate/racing loadUserState call.
+    let initialised = false;
+
     supabase.auth.getSession().then(({ data: { session } }) => {
+      initialised = true;
       loadUserState(session);
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      // Skip the INITIAL_SESSION event — getSession() already handles it.
+      // Only react to subsequent auth changes (sign-in, sign-out, token refresh).
+      if (!initialised) return;
       loadUserState(session);
     });
 

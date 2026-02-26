@@ -9,6 +9,11 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ResourceTypeBadge } from "@/components/shared/ResourceTypeBadge";
+import { DataProvenance } from "@/components/shared/DataProvenance";
+import { KpiCard } from "@/components/charts/KpiCard";
+import { AnimatedList } from "@/components/shared/AnimatedList";
+import { FHIR_RESOURCE_COLORS } from "@/lib/colors";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import type { DashboardResponse } from "@/types/api";
@@ -26,60 +31,82 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
 const SUMMARY_CARDS: {
   key: keyof DashboardResponse["summary"];
   label: string;
   icon: React.ElementType;
   link: string;
+  resourceType: string;
 }[] = [
   {
     key: "conditions",
     label: "Conditions",
     icon: Heart,
-    link: "/timeline?resourceType=Condition",
+    link: "/records/conditions",
+    resourceType: "Condition",
   },
   {
     key: "observations",
     label: "Observations",
     icon: Eye,
-    link: "/timeline?resourceType=Observation",
+    link: "/records/lab-results",
+    resourceType: "Observation",
   },
   {
     key: "encounters",
     label: "Encounters",
     icon: Stethoscope,
-    link: "/timeline?resourceType=Encounter",
+    link: "/records/visits",
+    resourceType: "Encounter",
   },
   {
     key: "immunizations",
     label: "Immunizations",
     icon: Syringe,
-    link: "/immunizations",
+    link: "/records/immunizations",
+    resourceType: "Immunization",
   },
   {
     key: "procedures",
     label: "Procedures",
     icon: Activity,
-    link: "/timeline?resourceType=Procedure",
+    link: "/records/visits",
+    resourceType: "Procedure",
   },
   {
     key: "diagnosticReports",
     label: "Diagnostic Reports",
     icon: FileText,
-    link: "/timeline?resourceType=DiagnosticReport",
+    link: "/records/documents",
+    resourceType: "DiagnosticReport",
   },
   {
     key: "medications",
     label: "Medications",
     icon: Pill,
-    link: "/medications",
+    link: "/records/medications",
+    resourceType: "MedicationRequest",
   },
   {
     key: "allergies",
     label: "Allergies",
     icon: AlertTriangle,
-    link: "/timeline?resourceType=AllergyIntolerance",
+    link: "/records/conditions",
+    resourceType: "AllergyIntolerance",
   },
+];
+
+const QUICK_ACTIONS = [
+  { label: "Timeline", icon: Clock, to: "/records/timeline" },
+  { label: "Deep Dive", icon: Sparkles, to: "/records/medications/insights" },
+  { label: "Chat", icon: MessageSquare, to: "/chat" },
 ];
 
 export function DashboardPage() {
@@ -97,19 +124,23 @@ export function DashboardPage() {
   if (loading) return <DashboardSkeleton />;
   if (!data) return null;
 
+  const firstName = data.patient.sandboxPersona.split(" ")[0];
+
   return (
     <div className="space-y-6">
       {/* Patient header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">
-            {data.patient.sandboxPersona}'s Health Record
+            {getGreeting()}, {firstName}
           </h1>
           <p className="text-sm text-muted-foreground">
             {data.summary.totalResources} total resources
-            {data.patient.lastSyncedAt &&
-              ` — Last synced ${new Date(data.patient.lastSyncedAt).toLocaleDateString()}`}
           </p>
+          <DataProvenance
+            source={data.patient.sandboxPersona}
+            lastSynced={data.patient.lastSyncedAt}
+          />
         </div>
         <Badge
           variant={data.patient.status === "ready" ? "default" : "secondary"}
@@ -118,64 +149,35 @@ export function DashboardPage() {
         </Badge>
       </div>
 
-      {/* Summary cards */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {SUMMARY_CARDS.map(({ key, label, icon: Icon, link }) => (
-          <Link key={key} to={link}>
-            <Card className="transition-colors hover:bg-accent">
-              <CardContent className="flex items-center gap-3 p-4">
-                <Icon className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="text-2xl font-bold">{data.summary[key]}</p>
-                  <p className="text-xs text-muted-foreground">{label}</p>
-                </div>
-              </CardContent>
-            </Card>
+      {/* Summary KPI cards */}
+      <AnimatedList className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {SUMMARY_CARDS.map(({ key, label, icon: Icon, link, resourceType }) => {
+          const color = FHIR_RESOURCE_COLORS[resourceType];
+          return (
+            <Link key={key} to={link}>
+              <KpiCard
+                title={label}
+                value={data.summary[key]}
+                icon={<Icon className="h-5 w-5" style={{ color: color?.badge }} />}
+                accentColor={color?.badge}
+              />
+            </Link>
+          );
+        })}
+      </AnimatedList>
+
+      {/* Quick action pills */}
+      <div className="flex flex-wrap gap-2">
+        {QUICK_ACTIONS.map(({ label, icon: Icon, to }) => (
+          <Link
+            key={to}
+            to={to}
+            className="inline-flex items-center gap-2 rounded-full border bg-card px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <Icon className="h-4 w-4 text-primary" />
+            {label}
           </Link>
         ))}
-      </div>
-
-      {/* CTAs */}
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Link to="/timeline">
-          <Card className="transition-colors hover:bg-accent">
-            <CardContent className="flex items-center gap-3 p-4">
-              <Clock className="h-5 w-5 text-primary" />
-              <div>
-                <p className="font-medium">Timeline</p>
-                <p className="text-xs text-muted-foreground">
-                  Browse all health events chronologically
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link to="/medications/insights">
-          <Card className="transition-colors hover:bg-accent">
-            <CardContent className="flex items-center gap-3 p-4">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <div>
-                <p className="font-medium">Deep Dive</p>
-                <p className="text-xs text-muted-foreground">
-                  Medication insights & analysis
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-        <Link to="/chat">
-          <Card className="transition-colors hover:bg-accent">
-            <CardContent className="flex items-center gap-3 p-4">
-              <MessageSquare className="h-5 w-5 text-primary" />
-              <div>
-                <p className="font-medium">Chat</p>
-                <p className="text-xs text-muted-foreground">
-                  Ask questions about your records
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
       </div>
 
       {/* Recent activity */}
@@ -185,33 +187,37 @@ export function DashboardPage() {
             <CardTitle className="text-lg">Recent Activity</CardTitle>
             <CardDescription>Latest health events</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {data.recentActivity.map((item) => (
-              <Link
-                key={item.id}
-                to={`/timeline?resourceType=${item.resourceType}`}
-                className="flex items-center justify-between rounded-md p-2 transition-colors hover:bg-accent"
-              >
-                <div>
-                  <p className="text-sm font-medium">
-                    {item.displayText ?? "Unknown"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {item.source}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <Badge variant="outline" className="text-xs">
-                    {item.resourceType}
-                  </Badge>
-                  {item.dateRecorded && (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {new Date(item.dateRecorded).toLocaleDateString()}
-                    </p>
-                  )}
-                </div>
-              </Link>
-            ))}
+          <CardContent>
+            <AnimatedList className="space-y-3">
+              {data.recentActivity.map((item) => {
+                const color = FHIR_RESOURCE_COLORS[item.resourceType];
+                return (
+                  <Link
+                    key={item.id}
+                    to={`/records/timeline?resourceType=${item.resourceType}`}
+                    className="flex items-center justify-between rounded-md p-2 transition-colors hover:bg-accent"
+                    style={color ? { borderLeft: `3px solid ${color.badge}` } : undefined}
+                  >
+                    <div className="pl-2">
+                      <p className="text-sm font-medium">
+                        {item.displayText ?? "Unknown"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.source}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <ResourceTypeBadge resourceType={item.resourceType} />
+                      {item.dateRecorded && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {new Date(item.dateRecorded).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
+            </AnimatedList>
           </CardContent>
         </Card>
       )}
@@ -231,9 +237,9 @@ function DashboardSkeleton() {
           <Skeleton key={i} className="h-20" />
         ))}
       </div>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="flex gap-2">
         {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-16" />
+          <Skeleton key={i} className="h-10 w-28 rounded-full" />
         ))}
       </div>
     </div>
