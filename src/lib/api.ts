@@ -1,6 +1,8 @@
 import { supabase } from "./supabase";
 
-const API_URL = import.meta.env.VITE_API_URL;
+// In dev, use relative URLs so requests go through the Vite proxy (avoids CORS).
+// In production, use the full API URL.
+const API_URL = import.meta.env.DEV ? "" : import.meta.env.VITE_API_URL;
 
 async function getToken(): Promise<string> {
   const {
