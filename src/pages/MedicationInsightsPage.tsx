@@ -20,6 +20,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
+import { MedicationDosageChart } from "@/components/charts/MedicationDosageChart";
 import type { MedicationInsightsResponse } from "@/types/api";
 
 export function MedicationInsightsPage() {
@@ -135,7 +136,14 @@ export function MedicationInsightsPage() {
             </Card>
           )}
 
-          {/* Dosage changes */}
+          {/* Dosage changes chart */}
+          {insights.changes.length > 0 && (
+            <Card className="p-4">
+              <MedicationDosageChart changes={insights.changes} />
+            </Card>
+          )}
+
+          {/* Dosage changes detail */}
           {insights.changes.length > 0 && (
             <Card>
               <CardHeader>

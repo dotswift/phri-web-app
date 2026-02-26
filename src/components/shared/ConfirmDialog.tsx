@@ -13,13 +13,22 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
+/**
+ * 3-tier destructive action confirmation:
+ * - Tier 1 (default): Simple confirm/cancel dialog
+ * - Tier 2 (destructive=true): Consequence description, safe action autofocused
+ * - Tier 3 (requireTyping): Item counts, type to confirm, role="alertdialog"
+ */
 interface ConfirmDialogProps {
   trigger: React.ReactNode;
   title: string;
   description: string;
   confirmLabel: string;
   destructive?: boolean;
+  /** When set, user must type this exact string to confirm (Tier 3). */
   requireTyping?: string;
+  /** Optional item count to display for Tier 3 destructive actions. */
+  itemCount?: number;
   loading?: boolean;
   onConfirm: () => void;
 }
@@ -31,6 +40,7 @@ export function ConfirmDialog({
   confirmLabel,
   destructive,
   requireTyping,
+  itemCount,
   loading,
   onConfirm,
 }: ConfirmDialogProps) {
@@ -48,27 +58,51 @@ export function ConfirmDialog({
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setTyped(""); }}>
+    <AlertDialog
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o);
+        if (!o) setTyped("");
+      }}
+    >
       <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
-      <AlertDialogContent>
+      <AlertDialogContent
+        role={requireTyping ? "alertdialog" : undefined}
+        aria-describedby="confirm-dialog-desc"
+      >
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
+          <AlertDialogDescription id="confirm-dialog-desc">
+            {description}
+          </AlertDialogDescription>
         </AlertDialogHeader>
+        {itemCount !== undefined && (
+          <p className="text-sm font-medium text-destructive">
+            This will affect {itemCount} item{itemCount !== 1 ? "s" : ""}.
+          </p>
+        )}
         {requireTyping && (
           <div className="mt-2">
-            <p className="mb-1 text-sm text-muted-foreground">
+            <label
+              htmlFor="confirm-typing-input"
+              className="mb-1 block text-sm text-muted-foreground"
+            >
               Type <strong>{requireTyping}</strong> to confirm:
-            </p>
+            </label>
             <Input
+              id="confirm-typing-input"
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
               placeholder={requireTyping}
+              aria-required="true"
+              aria-invalid={typed.length > 0 && typed !== requireTyping}
             />
           </div>
         )}
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel autoFocus={destructive && !requireTyping}>
+            Cancel
+          </AlertDialogCancel>
           <AlertDialogAction asChild>
             <Button
               variant={destructive ? "destructive" : "default"}

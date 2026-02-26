@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,10 +14,13 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { CitationBadge } from "@/components/shared/CitationBadge";
 import { DetailDrawer } from "@/components/shared/DetailDrawer";
+import { ResourceTypeBadge } from "@/components/shared/ResourceTypeBadge";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { AnimatedList } from "@/components/shared/AnimatedList";
+import { FHIR_RESOURCE_COLORS } from "@/lib/colors";
 import type { TimelineResponse } from "@/types/api";
 
 const RESOURCE_TYPES = [
@@ -91,12 +93,12 @@ export function TimelinePage() {
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
         <div className="w-48">
-          <Label className="mb-1 text-xs">Resource Type</Label>
+          <Label htmlFor="resource-type-filter" className="mb-1 text-xs">Resource Type</Label>
           <Select
             value={resourceType}
             onValueChange={(v) => updateParam("resourceType", v)}
           >
-            <SelectTrigger>
+            <SelectTrigger id="resource-type-filter" aria-label="Resource Type">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -109,21 +111,25 @@ export function TimelinePage() {
           </Select>
         </div>
         <div>
-          <Label className="mb-1 text-xs">From</Label>
+          <Label htmlFor="date-from" className="mb-1 text-xs">From</Label>
           <Input
+            id="date-from"
             type="date"
             value={dateFrom}
             onChange={(e) => updateParam("dateFrom", e.target.value)}
             className="w-40"
+            aria-label="From date"
           />
         </div>
         <div>
-          <Label className="mb-1 text-xs">To</Label>
+          <Label htmlFor="date-to" className="mb-1 text-xs">To</Label>
           <Input
+            id="date-to"
             type="date"
             value={dateTo}
             onChange={(e) => updateParam("dateTo", e.target.value)}
             className="w-40"
+            aria-label="To date"
           />
         </div>
       </div>
@@ -143,37 +149,39 @@ export function TimelinePage() {
         />
       ) : (
         <>
-          <div className="space-y-2">
-            {data.items.map((item) => (
-              <Card
-                key={item.id}
-                className="cursor-pointer transition-colors hover:bg-accent"
-                onClick={() => setSelectedId(item.id)}
-              >
-                <CardContent className="flex items-center justify-between p-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">
-                      {item.displayText ?? "Unknown"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {item.source}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CitationBadge citation={item.citation} />
-                    <Badge variant="outline" className="text-xs">
-                      {item.resourceType}
-                    </Badge>
-                    {item.dateRecorded && (
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(item.dateRecorded).toLocaleDateString()}
-                      </span>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <AnimatedList className="space-y-2">
+            {data.items.map((item) => {
+              const color = FHIR_RESOURCE_COLORS[item.resourceType];
+              return (
+                <Card
+                  key={item.id}
+                  className="cursor-pointer transition-colors hover:bg-accent"
+                  style={color ? { borderLeft: `3px solid ${color.badge}` } : undefined}
+                  onClick={() => setSelectedId(item.id)}
+                >
+                  <CardContent className="flex items-center justify-between p-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">
+                        {item.displayText ?? "Unknown"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.source}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CitationBadge citation={item.citation} />
+                      <ResourceTypeBadge resourceType={item.resourceType} />
+                      {item.dateRecorded && (
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(item.dateRecorded).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </AnimatedList>
 
           {/* Pagination */}
           <div className="flex items-center justify-between">

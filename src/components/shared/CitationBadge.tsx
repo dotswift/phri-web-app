@@ -13,10 +13,10 @@ interface CitationBadgeProps {
 export function CitationBadge({ citation }: CitationBadgeProps) {
   return (
     <Popover>
-      <PopoverTrigger asChild>
+      <PopoverTrigger className="cursor-pointer">
         <Badge
           variant="outline"
-          className="cursor-pointer text-xs hover:bg-accent"
+          className="text-xs hover:bg-accent"
         >
           Source
         </Badge>

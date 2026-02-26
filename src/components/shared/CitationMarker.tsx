@@ -4,13 +4,38 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Link } from "react-router-dom";
+import { FHIR_RESOURCE_COLORS } from "@/lib/colors";
+import {
+  Heart,
+  FileText,
+  Stethoscope,
+  Syringe,
+  Eye,
+  Activity,
+  Pill,
+  AlertTriangle,
+} from "lucide-react";
 import type { ChatCitation } from "@/types/api";
+
+const RESOURCE_ICONS: Record<string, React.ElementType> = {
+  Condition: Heart,
+  DiagnosticReport: FileText,
+  Encounter: Stethoscope,
+  Immunization: Syringe,
+  Observation: Eye,
+  Procedure: Activity,
+  MedicationRequest: Pill,
+  AllergyIntolerance: AlertTriangle,
+};
 
 interface CitationMarkerProps {
   citation: ChatCitation;
 }
 
 export function CitationMarker({ citation }: CitationMarkerProps) {
+  const color = FHIR_RESOURCE_COLORS[citation.resourceType];
+  const Icon = RESOURCE_ICONS[citation.resourceType];
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -18,9 +43,20 @@ export function CitationMarker({ citation }: CitationMarkerProps) {
           [{citation.index}]
         </sup>
       </PopoverTrigger>
-      <PopoverContent className="w-64 text-sm">
+      <PopoverContent
+        className="w-64 text-sm"
+        style={color ? { borderLeft: `4px solid ${color.badge}` } : undefined}
+      >
         <div className="space-y-1">
-          <p className="font-medium">{citation.resourceType}</p>
+          <div className="flex items-center gap-1.5">
+            {Icon && (
+              <Icon
+                className="h-3.5 w-3.5"
+                style={color ? { color: color.badge } : undefined}
+              />
+            )}
+            <p className="font-medium">{citation.resourceType}</p>
+          </div>
           {citation.date && (
             <p className="text-muted-foreground">
               {new Date(citation.date).toLocaleDateString()}
@@ -30,7 +66,7 @@ export function CitationMarker({ citation }: CitationMarkerProps) {
             "{citation.excerpt}"
           </p>
           <Link
-            to={`/timeline?resourceType=${citation.resourceType}`}
+            to={`/records/timeline?resourceType=${citation.resourceType}`}
             className="mt-2 block text-xs text-primary hover:underline"
           >
             View Source

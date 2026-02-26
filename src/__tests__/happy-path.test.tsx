@@ -51,8 +51,8 @@ describe("Happy path: login -> consent -> connect -> dashboard", () => {
       expect(screen.getByText("PHRI")).toBeInTheDocument();
     });
 
-    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+    expect(screen.getByLabelText("Email")).toBeInTheDocument();
+    expect(screen.getByLabelText("Password")).toBeInTheDocument();
   });
 
   it("shows consent page after login via auth state change", async () => {
@@ -64,11 +64,11 @@ describe("Happy path: login -> consent -> connect -> dashboard", () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+      expect(screen.getByLabelText("Email")).toBeInTheDocument();
     });
 
-    await user.type(screen.getByLabelText(/email/i), "test@example.com");
-    await user.type(screen.getByLabelText(/password/i), "password123");
+    await user.type(screen.getByLabelText("Email"), "test@example.com");
+    await user.type(screen.getByLabelText("Password"), "password123");
 
     // Set up API mocks before triggering auth change
     mockFetch.mockImplementation((url: string) => {

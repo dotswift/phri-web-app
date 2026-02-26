@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
+import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
@@ -132,6 +133,22 @@ export function SettingsPage() {
               </Link>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Appearance */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Appearance</CardTitle>
+          <CardDescription>Choose light or dark mode</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <span className="text-sm text-muted-foreground">
+              Toggle dark mode
+            </span>
+          </div>
         </CardContent>
       </Card>
 

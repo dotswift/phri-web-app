@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import { AppLayout } from "./components/layout/AppLayout";
@@ -6,12 +7,67 @@ import { ConsentPage } from "./pages/ConsentPage";
 import { ConnectPage } from "./pages/ConnectPage";
 import { ProgressPage } from "./pages/ProgressPage";
 import { DashboardPage } from "./pages/DashboardPage";
-import { TimelinePage } from "./pages/TimelinePage";
-import { MedicationsPage } from "./pages/MedicationsPage";
-import { MedicationInsightsPage } from "./pages/MedicationInsightsPage";
-import { ImmunizationsPage } from "./pages/ImmunizationsPage";
 import { ChatPage } from "./pages/ChatPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { RecordsCategoryGrid } from "./pages/RecordsCategoryGrid";
+import { ProfilePage } from "./pages/ProfilePage";
+import { Skeleton } from "./components/ui/skeleton";
+
+// Lazy-load chart-heavy and less-visited pages
+const TimelinePage = lazy(() =>
+  import("./pages/TimelinePage").then((m) => ({ default: m.TimelinePage })),
+);
+const MedicationsPage = lazy(() =>
+  import("./pages/MedicationsPage").then((m) => ({
+    default: m.MedicationsPage,
+  })),
+);
+const MedicationInsightsPage = lazy(() =>
+  import("./pages/MedicationInsightsPage").then((m) => ({
+    default: m.MedicationInsightsPage,
+  })),
+);
+const ImmunizationsPage = lazy(() =>
+  import("./pages/ImmunizationsPage").then((m) => ({
+    default: m.ImmunizationsPage,
+  })),
+);
+const ConditionsPage = lazy(() =>
+  import("./pages/ConditionsPage").then((m) => ({
+    default: m.ConditionsPage,
+  })),
+);
+const LabResultsPage = lazy(() =>
+  import("./pages/LabResultsPage").then((m) => ({
+    default: m.LabResultsPage,
+  })),
+);
+const VisitsPage = lazy(() =>
+  import("./pages/VisitsPage").then((m) => ({ default: m.VisitsPage })),
+);
+const VitalsPage = lazy(() =>
+  import("./pages/VitalsPage").then((m) => ({ default: m.VitalsPage })),
+);
+const DocumentsPage = lazy(() =>
+  import("./pages/DocumentsPage").then((m) => ({
+    default: m.DocumentsPage,
+  })),
+);
+
+function LazyFallback() {
+  return (
+    <div className="space-y-4 p-6" role="status" aria-label="Loading page">
+      <Skeleton className="h-8 w-48" aria-hidden="true" />
+      <Skeleton className="h-4 w-32" aria-hidden="true" />
+      <div className="space-y-2">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-16" aria-hidden="true" />
+        ))}
+      </div>
+      <span className="sr-only">Loading page content...</span>
+    </div>
+  );
+}
 
 function PublicOnly() {
   const { user, loading } = useAuth();
@@ -54,7 +110,7 @@ function RootRedirect() {
   if (patient.status === "pending" || patient.status === "querying") {
     return <Navigate to="/progress" replace />;
   }
-  return <Navigate to="/dashboard" replace />;
+  return <Navigate to="/home" replace />;
 }
 
 function LoadingScreen() {
@@ -62,7 +118,9 @@ function LoadingScreen() {
     <div className="flex h-screen flex-col items-center justify-center gap-4 animate-in fade-in duration-300">
       <div>
         <h1 className="text-2xl font-bold text-center">PHRI</h1>
-        <p className="text-sm text-muted-foreground">Personal Health Record &amp; Insights</p>
+        <p className="text-sm text-muted-foreground">
+          Personal Health Record &amp; Insights
+        </p>
       </div>
       <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
     </div>
@@ -84,25 +142,117 @@ export function AppRouter() {
         <Route element={<RequireConsent />}>
           <Route path="/connect" element={<ConnectPage />} />
           <Route path="/progress" element={<ProgressPage />} />
-          <Route path="/settings" element={<AppLayout />}>
-            <Route index element={<SettingsPage />} />
+
+          {/* Profile/Settings accessible without patient */}
+          <Route element={<AppLayout />}>
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/profile/settings" element={<SettingsPage />} />
           </Route>
 
           <Route element={<RequirePatient />}>
             <Route element={<AppLayout />}>
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/timeline" element={<TimelinePage />} />
-              <Route path="/medications" element={<MedicationsPage />} />
+              <Route path="/home" element={<DashboardPage />} />
+              <Route path="/records" element={<RecordsCategoryGrid />} />
               <Route
-                path="/medications/insights"
-                element={<MedicationInsightsPage />}
+                path="/records/conditions"
+                element={
+                  <Suspense fallback={<LazyFallback />}>
+                    <ConditionsPage />
+                  </Suspense>
+                }
               />
-              <Route path="/immunizations" element={<ImmunizationsPage />} />
+              <Route
+                path="/records/medications"
+                element={
+                  <Suspense fallback={<LazyFallback />}>
+                    <MedicationsPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/records/medications/insights"
+                element={
+                  <Suspense fallback={<LazyFallback />}>
+                    <MedicationInsightsPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/records/lab-results"
+                element={
+                  <Suspense fallback={<LazyFallback />}>
+                    <LabResultsPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/records/immunizations"
+                element={
+                  <Suspense fallback={<LazyFallback />}>
+                    <ImmunizationsPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/records/visits"
+                element={
+                  <Suspense fallback={<LazyFallback />}>
+                    <VisitsPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/records/vitals"
+                element={
+                  <Suspense fallback={<LazyFallback />}>
+                    <VitalsPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/records/documents"
+                element={
+                  <Suspense fallback={<LazyFallback />}>
+                    <DocumentsPage />
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/records/timeline"
+                element={
+                  <Suspense fallback={<LazyFallback />}>
+                    <TimelinePage />
+                  </Suspense>
+                }
+              />
               <Route path="/chat" element={<ChatPage />} />
             </Route>
           </Route>
         </Route>
       </Route>
+
+      {/* Redirects from old paths */}
+      <Route path="/dashboard" element={<Navigate to="/home" replace />} />
+      <Route
+        path="/timeline"
+        element={<Navigate to="/records/timeline" replace />}
+      />
+      <Route
+        path="/medications"
+        element={<Navigate to="/records/medications" replace />}
+      />
+      <Route
+        path="/medications/insights"
+        element={<Navigate to="/records/medications/insights" replace />}
+      />
+      <Route
+        path="/immunizations"
+        element={<Navigate to="/records/immunizations" replace />}
+      />
+      <Route
+        path="/settings"
+        element={<Navigate to="/profile/settings" replace />}
+      />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

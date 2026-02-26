@@ -16,7 +16,7 @@ export function ProgressPage() {
     if (status === "ready") {
       (async () => {
         await refreshUserState();
-        navigate("/dashboard");
+        navigate("/home");
       })();
     }
   }, [status, navigate, refreshUserState]);
@@ -55,7 +55,7 @@ export function ProgressPage() {
           <p className="max-w-xs text-sm text-muted-foreground">
             Some data has arrived. More may still be loading — you can continue now or wait.
           </p>
-          <Button onClick={() => navigate("/dashboard")}>
+          <Button onClick={() => navigate("/home")}>
             Continue to Dashboard
           </Button>
         </div>
