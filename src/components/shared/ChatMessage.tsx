@@ -1,7 +1,10 @@
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import type { ReactNode } from "react";
 import { CitationMarker } from "./CitationMarker";
 import { Sparkles } from "lucide-react";
 import type { ChatCitation } from "@/types/api";
+import { trimIncompleteMarkdown } from "@/lib/markdownStream";
 
 interface ChatMessageProps {
   role: "user" | "assistant";
@@ -17,7 +20,8 @@ const FOLLOW_UP_CHIPS = [
   "Is this value normal?",
 ];
 
-function renderTextWithCitations(text: string, citations: ChatCitation[]) {
+/** Inject CitationMarker components into a plain-text string */
+function injectCitations(text: string, citations: ChatCitation[]): ReactNode[] {
   const parts = text.split(/(\[\d+\])/g);
   return parts.map((part, i) => {
     const match = part.match(/\[(\d+)\]/);
@@ -28,8 +32,32 @@ function renderTextWithCitations(text: string, citations: ChatCitation[]) {
         return <CitationMarker key={i} citation={citation} />;
       }
     }
-    return <span key={i}>{part}</span>;
+    return part;
   });
+}
+
+/** Walk ReactMarkdown children and replace citation markers like [1] */
+function replaceCitationsInChildren(
+  children: ReactNode,
+  citations: ChatCitation[]
+): ReactNode {
+  if (typeof children === "string") {
+    const injected = injectCitations(children, citations);
+    // If nothing was replaced, return the original string
+    return injected.length === 1 && typeof injected[0] === "string"
+      ? children
+      : injected;
+  }
+  if (Array.isArray(children)) {
+    return children.map((child, i) =>
+      typeof child === "string" ? (
+        <span key={i}>{injectCitations(child, citations)}</span>
+      ) : (
+        child
+      )
+    );
+  }
+  return children;
 }
 
 export function ChatMessage({ role, content, citations, isStreaming, onSuggestionClick }: ChatMessageProps) {
@@ -45,6 +73,7 @@ export function ChatMessage({ role, content, citations, isStreaming, onSuggestio
 
   // Assistant message
   const hasCitations = citations && citations.length > 0;
+  const displayContent = isStreaming ? trimIncompleteMarkdown(content) : content;
 
   return (
     <div className="flex justify-start">
@@ -56,17 +85,38 @@ export function ChatMessage({ role, content, citations, isStreaming, onSuggestio
             AI-generated
           </span>
 
-          {hasCitations ? (
-            <div className="prose prose-sm max-w-none dark:prose-invert">
-              {renderTextWithCitations(content, citations)}
-              {isStreaming && <span className="ml-0.5 inline-block animate-pulse">|</span>}
-            </div>
-          ) : (
-            <div className="prose prose-sm max-w-none dark:prose-invert">
-              <ReactMarkdown>{content}</ReactMarkdown>
-              {isStreaming && <span className="ml-0.5 inline-block animate-pulse">|</span>}
-            </div>
-          )}
+          <div className="prose prose-sm max-w-none dark:prose-invert">
+            {hasCitations ? (
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  p: ({ children }) => (
+                    <p>{replaceCitationsInChildren(children, citations)}</p>
+                  ),
+                  li: ({ children }) => (
+                    <li>{replaceCitationsInChildren(children, citations)}</li>
+                  ),
+                  td: ({ children }) => (
+                    <td>{replaceCitationsInChildren(children, citations)}</td>
+                  ),
+                  th: ({ children }) => (
+                    <th>{replaceCitationsInChildren(children, citations)}</th>
+                  ),
+                  strong: ({ children }) => (
+                    <strong>{replaceCitationsInChildren(children, citations)}</strong>
+                  ),
+                  em: ({ children }) => (
+                    <em>{replaceCitationsInChildren(children, citations)}</em>
+                  ),
+                }}
+              >
+                {displayContent}
+              </ReactMarkdown>
+            ) : (
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{displayContent}</ReactMarkdown>
+            )}
+            {isStreaming && <span className="ml-0.5 inline-block animate-pulse">|</span>}
+          </div>
         </div>
         {hasCitations && (
           <div className="flex flex-wrap gap-1">
