@@ -7,17 +7,32 @@ import { Label } from "@/components/ui/label";
 import { TrustBadges } from "@/components/shared/TrustBadges";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-import { Eye, EyeOff } from "lucide-react";
+import { Check, Eye, EyeOff } from "lucide-react";
+
+function getPasswordStrength(pw: string): "weak" | "fair" | "strong" {
+  if (pw.length < 8) return "weak";
+  let criteria = 0;
+  if (/[A-Z]/.test(pw)) criteria++;
+  if (/[a-z]/.test(pw)) criteria++;
+  if (/[0-9]/.test(pw)) criteria++;
+  if (/[^A-Za-z0-9]/.test(pw)) criteria++;
+  if (criteria === 4) return "strong";
+  if (criteria >= 2) return "fair";
+  return "weak";
+}
 
 export function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>(
-    {},
-  );
+  const [errors, setErrors] = useState<{
+    email?: string;
+    password?: string;
+    confirmPassword?: string;
+  }>({});
   const [googleLoading, setGoogleLoading] = useState(false);
   const { signIn, signUp, signInWithGoogle } = useAuth();
   const navigate = useNavigate();
@@ -31,8 +46,21 @@ export function LoginPage() {
     }
     if (!password) {
       newErrors.password = "Password is required";
+    } else if (isSignUp) {
+      if (
+        password.length < 8 ||
+        !/[A-Z]/.test(password) ||
+        !/[a-z]/.test(password) ||
+        !/[0-9]/.test(password) ||
+        !/[^A-Za-z0-9]/.test(password)
+      ) {
+        newErrors.password = "Password must meet all requirements below";
+      }
     } else if (password.length < 6) {
       newErrors.password = "Password must be at least 6 characters";
+    }
+    if (isSignUp && password !== confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -68,7 +96,7 @@ export function LoginPage() {
             <span className="text-primary">P</span>HRI
           </h1>
           <p className="text-sm text-muted-foreground">
-            Personal Health Record & Insights
+            {isSignUp ? "Create your account" : "Personal Health Record & Insights"}
           </p>
         </CardHeader>
         <CardContent>
@@ -190,7 +218,83 @@ export function LoginPage() {
                   {errors.password}
                 </p>
               )}
+              {isSignUp && (() => {
+                const strength = getPasswordStrength(password);
+                const color = { weak: "bg-red-500", fair: "bg-yellow-500", strong: "bg-green-500" }[strength];
+                const segments = { weak: 1, fair: 2, strong: 3 }[strength];
+                const show = password.length > 0;
+                return (
+                  <div
+                    className="grid transition-all duration-300 ease-out"
+                    style={{ gridTemplateRows: show ? "1fr" : "0fr", opacity: show ? 1 : 0 }}
+                  >
+                    <div className="overflow-hidden">
+                      <div className="space-y-1 pt-0.5">
+                        <div className="flex gap-1">
+                          {[0, 1, 2].map((i) => (
+                            <div
+                              key={i}
+                              className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${i < segments ? color : "bg-muted"}`}
+                            />
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground capitalize transition-all duration-300">{strength}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+              {isSignUp && (
+                <ul className="space-y-0.5 text-xs text-muted-foreground">
+                  {[
+                    { met: password.length >= 8, label: "At least 8 characters" },
+                    { met: /[A-Z]/.test(password), label: "Uppercase letter" },
+                    { met: /[a-z]/.test(password), label: "Lowercase letter" },
+                    { met: /[0-9]/.test(password), label: "Number" },
+                    { met: /[^A-Za-z0-9]/.test(password), label: "Special character" },
+                  ].map((req) => (
+                    <li key={req.label} className="flex items-center gap-1.5">
+                      {req.met ? (
+                        <Check className="h-3 w-3 text-green-500" />
+                      ) : (
+                        <span className="inline-block h-3 w-3 text-center leading-3">·</span>
+                      )}
+                      {req.label}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
+            {isSignUp && (
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirm Password</Label>
+                <Input
+                  id="confirm-password"
+                  type={showPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    if (errors.confirmPassword)
+                      setErrors((p) => ({ ...p, confirmPassword: undefined }));
+                  }}
+                  placeholder="Re-enter your password"
+                  aria-required="true"
+                  aria-invalid={!!errors.confirmPassword}
+                  aria-describedby={
+                    errors.confirmPassword ? "confirm-password-error" : undefined
+                  }
+                />
+                {errors.confirmPassword && (
+                  <p
+                    id="confirm-password-error"
+                    role="alert"
+                    className="text-xs text-destructive"
+                  >
+                    {errors.confirmPassword}
+                  </p>
+                )}
+              </div>
+            )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Please wait..." : isSignUp ? "Sign Up" : "Sign In"}
             </Button>
@@ -198,7 +302,11 @@ export function LoginPage() {
           <div className="mt-4 text-center text-sm">
             <button
               type="button"
-              onClick={() => setIsSignUp(!isSignUp)}
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setConfirmPassword("");
+                setErrors({});
+              }}
               className="text-primary underline-offset-4 hover:underline"
             >
               {isSignUp
