@@ -16,8 +16,9 @@ import { DetailDrawer } from "@/components/shared/DetailDrawer";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { Pill } from "lucide-react";
+import { Pill, Info } from "lucide-react";
 import type { MedicationsResponse, MedicationItem } from "@/types/api";
+import { DEMO_MEDICATIONS } from "@/lib/sandboxMedications";
 
 export function MedicationsPage() {
   const [data, setData] = useState<MedicationsResponse | null>(null);
@@ -26,6 +27,7 @@ export function MedicationsPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isDemoData, setIsDemoData] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
@@ -42,7 +44,15 @@ export function MedicationsPage() {
       const result = await api.get<MedicationsResponse>(
         `/api/medications?${params.toString()}`,
       );
-      setData(result);
+      const apiEmpty =
+        result.active.length === 0 && result.other.length === 0;
+      if (apiEmpty) {
+        setIsDemoData(true);
+        setData(filterDemoMedications(DEMO_MEDICATIONS, status, debouncedSearch));
+      } else {
+        setIsDemoData(false);
+        setData(result);
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to load medications");
     } finally {
@@ -87,6 +97,13 @@ export function MedicationsPage() {
         </div>
       </div>
 
+      {isDemoData && (
+        <div className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
+          <Info className="h-4 w-4 shrink-0" />
+          Showing demo medications — this sandbox persona has no medication records.
+        </div>
+      )}
+
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -105,14 +122,14 @@ export function MedicationsPage() {
             <MedicationSection
               title="Active Medications"
               items={data!.active}
-              onSelect={setSelectedId}
+              onSelect={isDemoData ? undefined : setSelectedId}
             />
           )}
           {data!.other.length > 0 && (
             <MedicationSection
               title="Other Medications"
               items={data!.other}
-              onSelect={setSelectedId}
+              onSelect={isDemoData ? undefined : setSelectedId}
             />
           )}
         </>
@@ -127,6 +144,25 @@ export function MedicationsPage() {
   );
 }
 
+function filterDemoMedications(
+  demo: MedicationsResponse,
+  status: string,
+  search: string,
+): MedicationsResponse {
+  const matchesSearch = (med: MedicationItem) =>
+    !search ||
+    (med.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
+    (med.dosage ?? "").toLowerCase().includes(search.toLowerCase());
+
+  const matchesStatus = (med: MedicationItem) =>
+    status === "all" || med.status === status;
+
+  const filter = (items: MedicationItem[]) =>
+    items.filter((m) => matchesSearch(m) && matchesStatus(m));
+
+  return { active: filter(demo.active), other: filter(demo.other) };
+}
+
 function MedicationSection({
   title,
   items,
@@ -134,7 +170,7 @@ function MedicationSection({
 }: {
   title: string;
   items: MedicationItem[];
-  onSelect: (id: string) => void;
+  onSelect?: (id: string) => void;
 }) {
   return (
     <Card>
@@ -145,8 +181,8 @@ function MedicationSection({
         {items.map((med) => (
           <div
             key={med.id}
-            className="flex cursor-pointer items-center justify-between rounded-md p-2 transition-colors hover:bg-accent"
-            onClick={() => onSelect(med.id)}
+            className={`flex items-center justify-between rounded-md p-2 transition-colors ${onSelect ? "cursor-pointer hover:bg-accent" : ""}`}
+            onClick={onSelect ? () => onSelect(med.id) : undefined}
           >
             <div>
               <p className="text-sm font-medium">{med.name ?? "Unknown"}</p>
