@@ -46,10 +46,13 @@ export function DocumentsPage() {
     fetchData();
   }, [fetchData]);
 
-  const handleViewPdf = async (fileName: string) => {
-    setViewingFileName(fileName);
+  const handleViewDocument = async (doc: DocumentItem) => {
+    setViewingFileName(doc.fileName);
     try {
-      const params = new URLSearchParams({ fileName, type: "pdf" });
+      const params = new URLSearchParams({ fileName: doc.fileName });
+      // Only request PDF conversion for XML documents (CDA/CCDA);
+      // native PDF/JPG/etc. should be fetched without conversion.
+      if (doc.mimeType?.includes("xml")) params.set("type", "pdf");
       const result = await api.get<DocumentUrlResponse>(
         `/api/documents/url?${params.toString()}`,
       );
@@ -113,7 +116,7 @@ export function DocumentsPage() {
                     disabled={viewingFileName === doc.fileName}
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleViewPdf(doc.fileName);
+                      handleViewDocument(doc);
                     }}
                   >
                     {viewingFileName === doc.fileName ? (
@@ -121,7 +124,7 @@ export function DocumentsPage() {
                     ) : (
                       <ExternalLink className="h-4 w-4" />
                     )}
-                    View PDF
+                    View
                   </Button>
                 </div>
               </CardContent>

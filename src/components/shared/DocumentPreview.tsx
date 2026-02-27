@@ -23,6 +23,7 @@ export function DocumentPreview({
   );
   const [fileName, setFileName] = useState<string | null>(null);
   const [description, setDescription] = useState<string | null>(null);
+  const [mimeType, setMimeType] = useState<string | null>(null);
   const [opening, setOpening] = useState(false);
 
   useEffect(() => {
@@ -42,6 +43,7 @@ export function DocumentPreview({
         if (res.fileName) {
           setFileName(res.fileName);
           setDescription(res.description);
+          setMimeType(res.mimeType);
           setState("found");
         } else {
           setState("not-found");
@@ -72,10 +74,13 @@ export function DocumentPreview({
 
   if (state === "not-found" || !fileName) return null;
 
+  const isXml = mimeType?.includes("xml");
+
   const handleOpen = async () => {
     setOpening(true);
     try {
-      const params = new URLSearchParams({ fileName, type: "pdf" });
+      const params = new URLSearchParams({ fileName });
+      if (isXml) params.set("type", "pdf");
       const result = await api.get<DocumentUrlResponse>(
         `/api/documents/url?${params.toString()}`
       );
@@ -98,7 +103,9 @@ export function DocumentPreview({
         <p className="truncate text-sm font-medium">
           {description ?? "Source Document"}
         </p>
-        <p className="text-xs text-muted-foreground">PDF</p>
+        <p className="text-xs text-muted-foreground">
+          {isXml ? "PDF (converted)" : mimeType ?? "Document"}
+        </p>
       </div>
       <Button
         variant="outline"

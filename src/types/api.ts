@@ -260,6 +260,7 @@ export interface DocumentUrlResponse {
 export interface DocumentForResourceResponse {
   fileName: string | null;
   description: string | null;
+  mimeType: string | null;
 }
 
 // --- Settings ---
