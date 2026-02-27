@@ -48,7 +48,9 @@ describe("Happy path: login -> consent -> connect -> dashboard", () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText("PHRI")).toBeInTheDocument();
+      expect(
+        screen.getByText((_, el) => el?.tagName === "H1" && el.textContent === "PHRI"),
+      ).toBeInTheDocument();
     });
 
     expect(screen.getByLabelText("Email")).toBeInTheDocument();

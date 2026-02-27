@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CitationBadge } from "../CitationBadge";
+import { ResourceDetailProvider } from "@/context/ResourceDetailContext";
 
 describe("CitationBadge", () => {
   const citation = {
@@ -13,13 +14,13 @@ describe("CitationBadge", () => {
   };
 
   it("renders the Source badge", () => {
-    render(<CitationBadge citation={citation} />);
+    render(<ResourceDetailProvider><CitationBadge citation={citation} /></ResourceDetailProvider>);
     expect(screen.getByText("Source")).toBeInTheDocument();
   });
 
   it("shows popover with citation details on click", async () => {
     const user = userEvent.setup();
-    render(<CitationBadge citation={citation} />);
+    render(<ResourceDetailProvider><CitationBadge citation={citation} /></ResourceDetailProvider>);
 
     await user.click(screen.getByText("Source"));
 
@@ -36,7 +37,7 @@ describe("CitationBadge", () => {
       date: null,
       source: null,
     };
-    render(<CitationBadge citation={sparse} />);
+    render(<ResourceDetailProvider><CitationBadge citation={sparse} /></ResourceDetailProvider>);
     expect(screen.getByText("Source")).toBeInTheDocument();
   });
 });
