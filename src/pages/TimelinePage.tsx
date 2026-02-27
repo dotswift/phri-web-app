@@ -1,111 +1,53 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CitationBadge } from "@/components/shared/CitationBadge";
-import { ResourceTypeBadge } from "@/components/shared/ResourceTypeBadge";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { api } from "@/lib/api";
-import { toast } from "sonner";
-import { Clock, ChevronLeft, ChevronRight } from "lucide-react";
-import { AnimatedList } from "@/components/shared/AnimatedList";
-import { FHIR_RESOURCE_COLORS } from "@/lib/colors";
+import { TimelineFilterBar } from "@/components/timeline/TimelineFilterBar";
+import { TimelineDateFilter } from "@/components/timeline/TimelineDateFilter";
+import { TimelineList } from "@/components/timeline/TimelineList";
+import { TimelineMiniStrip } from "@/components/timeline/TimelineMiniStrip";
+import { TimelineScatterChart } from "@/components/charts/TimelineScatterChart";
+import { useTimelineData } from "@/hooks/useTimelineData";
 import {
   useResourceDetail,
   endpointForResourceType,
 } from "@/context/ResourceDetailContext";
-import type { TimelineResponse } from "@/types/api";
-
-const RESOURCE_TYPES = [
-  "All",
-  "Condition",
-  "DiagnosticReport",
-  "Encounter",
-  "Immunization",
-  "Observation",
-  "Procedure",
-  "MedicationRequest",
-];
+import { Clock } from "lucide-react";
 
 export function TimelinePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { openResourceDetail } = useResourceDetail();
-  const [data, setData] = useState<TimelineResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState<{ earliest: string; latest: string } | null>(null);
-  const dateRangeComputed = useRef(false);
 
-  const resourceType = searchParams.get("resourceType") ?? "All";
-  const dateFrom = searchParams.get("dateFrom") ?? "";
-  const dateTo = searchParams.get("dateTo") ?? "";
-  const page = parseInt(searchParams.get("page") ?? "1", 10);
+  // Parse filter state from URL
+  const resourceTypes = useMemo(() => {
+    const raw = searchParams.get("resourceTypes");
+    if (!raw) return new Set<string>();
+    return new Set(raw.split(",").filter(Boolean));
+  }, [searchParams]);
 
-  const fetchTimeline = useCallback(async () => {
-    setLoading(true);
-    const params = new URLSearchParams();
-    if (resourceType !== "All") params.set("resourceType", resourceType);
-    if (dateFrom) params.set("dateFrom", new Date(dateFrom).toISOString());
-    if (dateTo) {
-      const end = new Date(dateTo);
-      end.setHours(23, 59, 59, 999);
-      params.set("dateTo", end.toISOString());
-    }
-    params.set("page", String(page));
-    params.set("limit", "20");
+  const dateFrom = useMemo(() => {
+    const raw = searchParams.get("dateFrom");
+    return raw ? new Date(raw) : null;
+  }, [searchParams]);
 
-    try {
-      const result = await api.get<TimelineResponse>(
-        `/api/timeline?${params.toString()}`,
-      );
-      setData(result);
+  const dateTo = useMemo(() => {
+    const raw = searchParams.get("dateTo");
+    return raw ? new Date(raw) : null;
+  }, [searchParams]);
 
-      // Compute date range from initial unfiltered fetch
-      if (!dateFrom && !dateTo && !dateRangeComputed.current && result.items.length > 0) {
-        dateRangeComputed.current = true;
-        const latest = result.items[0].dateRecorded?.split("T")[0] ?? "";
-        let earliest = result.items[result.items.length - 1].dateRecorded?.split("T")[0] ?? "";
+  const filters = useMemo(
+    () => ({ resourceTypes, dateFrom, dateTo }),
+    [resourceTypes, dateFrom, dateTo],
+  );
 
-        if (result.pagination.totalPages > 1) {
-          try {
-            const lastPageParams = new URLSearchParams();
-            if (resourceType !== "All") lastPageParams.set("resourceType", resourceType);
-            lastPageParams.set("page", String(result.pagination.totalPages));
-            lastPageParams.set("limit", "1");
-            const lastPage = await api.get<TimelineResponse>(
-              `/api/timeline?${lastPageParams.toString()}`,
-            );
-            if (lastPage.items.length > 0 && lastPage.items[0].dateRecorded) {
-              earliest = lastPage.items[0].dateRecorded.split("T")[0];
-            }
-          } catch {
-            // Fall back to current page's earliest
-          }
-        }
-
-        if (latest && earliest) {
-          setDateRange({ earliest, latest });
-        }
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to load timeline");
-    } finally {
-      setLoading(false);
-    }
-  }, [resourceType, dateFrom, dateTo, page]);
-
-  useEffect(() => {
-    fetchTimeline();
-  }, [fetchTimeline]);
+  const { allItems, filteredItems, loading, resourceTypeCounts } =
+    useTimelineData(filters);
 
   // Deep-link: ?resourceId=abc opens modal then cleans URL
   useEffect(() => {
@@ -115,149 +57,126 @@ export function TimelinePage() {
       openResourceDetail(id, endpointForResourceType(type));
       const next = new URLSearchParams(searchParams);
       next.delete("resourceId");
+      next.delete("resourceType");
       setSearchParams(next, { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const updateParam = (key: string, value: string) => {
-    const next = new URLSearchParams(searchParams);
-    if (value && value !== "All") {
-      next.set(key, value);
-    } else {
-      next.delete(key);
-    }
-    if (key !== "page") next.delete("page");
-    setSearchParams(next);
-  };
+  const handleResourceTypesChange = useCallback(
+    (next: Set<string>) => {
+      const params = new URLSearchParams(searchParams);
+      if (next.size === 0) {
+        params.delete("resourceTypes");
+      } else {
+        params.set("resourceTypes", [...next].join(","));
+      }
+      setSearchParams(params);
+    },
+    [searchParams, setSearchParams],
+  );
+
+  const handleDateChange = useCallback(
+    (from: Date | null, to: Date | null) => {
+      const params = new URLSearchParams(searchParams);
+      if (from) {
+        params.set("dateFrom", from.toISOString());
+      } else {
+        params.delete("dateFrom");
+      }
+      if (to) {
+        params.set("dateTo", to.toISOString());
+      } else {
+        params.delete("dateTo");
+      }
+      setSearchParams(params);
+    },
+    [searchParams, setSearchParams],
+  );
+
+  const hasData = !loading && filteredItems.length > 0;
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Timeline</h1>
-
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <div className="w-48">
-          <Label htmlFor="resource-type-filter" className="mb-1 text-xs">Resource Type</Label>
-          <Select
-            value={resourceType}
-            onValueChange={(v) => updateParam("resourceType", v)}
-          >
-            <SelectTrigger id="resource-type-filter" aria-label="Resource Type">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {RESOURCE_TYPES.map((t) => (
-                <SelectItem key={t} value={t}>
-                  {t}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label htmlFor="date-from" className="mb-1 text-xs">From</Label>
-          <Input
-            id="date-from"
-            type="date"
-            value={dateFrom || dateRange?.earliest || ""}
-            onChange={(e) => updateParam("dateFrom", e.target.value)}
-            className="w-40"
-            aria-label="From date"
-          />
-        </div>
-        <div>
-          <Label htmlFor="date-to" className="mb-1 text-xs">To</Label>
-          <Input
-            id="date-to"
-            type="date"
-            value={dateTo || dateRange?.latest || ""}
-            onChange={(e) => updateParam("dateTo", e.target.value)}
-            className="w-40"
-            aria-label="To date"
-          />
-        </div>
+      {/* Header */}
+      <div className="flex items-baseline justify-between">
+        <h1 className="text-2xl font-bold">Timeline</h1>
+        {!loading && (
+          <p className="text-sm text-muted-foreground">
+            {filteredItems.length === allItems.length
+              ? `${allItems.length} events`
+              : `${filteredItems.length} of ${allItems.length} events`}
+          </p>
+        )}
       </div>
 
-      {/* Results */}
+      {/* Filter bars */}
+      {!loading && allItems.length > 0 && (
+        <div className="space-y-2">
+          <TimelineFilterBar
+            resourceTypeCounts={resourceTypeCounts}
+            selected={resourceTypes}
+            onChange={handleResourceTypesChange}
+          />
+          <TimelineDateFilter
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            onChange={handleDateChange}
+          />
+        </div>
+      )}
+
+      {/* Content */}
       {loading ? (
         <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
+          {Array.from({ length: 6 }).map((_, i) => (
             <Skeleton key={i} className="h-16" />
           ))}
         </div>
-      ) : !data || data.items.length === 0 ? (
+      ) : filteredItems.length === 0 ? (
         <EmptyState
           icon={Clock}
           title="No records found"
-          description="Try adjusting your filters or date range."
+          description={
+            allItems.length > 0
+              ? "Try adjusting your filters or date range."
+              : "No timeline data available yet."
+          }
         />
       ) : (
         <>
-          <AnimatedList className="space-y-2">
-            {data.items.map((item) => {
-              const color = FHIR_RESOURCE_COLORS[item.resourceType];
-              return (
-                <Card
-                  key={item.id}
-                  className="cursor-pointer transition-colors hover:bg-accent"
-                  style={color ? { borderLeft: `3px solid ${color.badge}` } : undefined}
-                  onClick={() => openResourceDetail(item.id, endpointForResourceType(item.resourceType))}
-                >
-                  <CardContent className="flex items-center justify-between p-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">
-                        {item.displayText ?? "Unknown"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {item.source}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CitationBadge citation={item.citation} />
-                      <ResourceTypeBadge resourceType={item.resourceType} />
-                      {item.dateRecorded && (
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(item.dateRecorded).toLocaleDateString()}
-                        </span>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </AnimatedList>
-
-          {/* Pagination */}
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              Page {data.pagination.page} of {data.pagination.totalPages} (
-              {data.pagination.total} total)
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => updateParam("page", String(page - 1))}
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= data.pagination.totalPages}
-                onClick={() => updateParam("page", String(page + 1))}
-              >
-                Next
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
+          {/* Desktop: chart always visible above list */}
+          <div className="hidden md:block">
+            <TimelineScatterChart
+              items={filteredItems}
+              onBrushChange={handleDateChange}
+            />
           </div>
+
+          {/* Mobile: tabs for List / Visual */}
+          <div className="md:hidden">
+            <Tabs defaultValue="list">
+              <TabsList>
+                <TabsTrigger value="list">List</TabsTrigger>
+                <TabsTrigger value="visual">Visual</TabsTrigger>
+              </TabsList>
+              <TabsContent value="list">
+                <TimelineList items={filteredItems} />
+              </TabsContent>
+              <TabsContent value="visual">
+                <TimelineMiniStrip items={filteredItems} />
+              </TabsContent>
+            </Tabs>
+          </div>
+
+          {/* Desktop list (always visible) */}
+          {hasData && (
+            <div className="hidden md:block">
+              <TimelineList items={filteredItems} />
+            </div>
+          )}
         </>
       )}
-
     </div>
   );
 }
