@@ -31,38 +31,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadUserState = useCallback(async (session: Session | null) => {
-    if (!session) {
-      setUser(null);
-      setConsent(null);
-      setPatient(null);
-      setLoading(false);
-      return;
-    }
+  const loadUserState = useCallback(
+    async (session: Session | null, silent = false) => {
+      if (!session) {
+        setUser(null);
+        setConsent(null);
+        setPatient(null);
+        if (!silent) setLoading(false);
+        return;
+      }
 
-    setLoading(true);
-    setUser(session.user);
+      if (!silent) setLoading(true);
+      setUser(session.user);
 
-    try {
-      const [consentRes, patientRes] = await Promise.all([
-        api.get<Consent | null>("/api/consent").catch((err) => {
-          if (err instanceof ApiError && err.status === 404) return null;
-          throw err;
-        }),
-        api.get<Patient | null>("/api/patient").catch((err) => {
-          if (err instanceof ApiError && err.status === 404) return null;
-          throw err;
-        }),
-      ]);
+      try {
+        const [consentRes, patientRes] = await Promise.all([
+          api.get<Consent | null>("/api/consent").catch((err) => {
+            if (err instanceof ApiError && err.status === 404) return null;
+            throw err;
+          }),
+          api.get<Patient | null>("/api/patient").catch((err) => {
+            if (err instanceof ApiError && err.status === 404) return null;
+            throw err;
+          }),
+        ]);
 
-      setConsent(consentRes);
-      setPatient(patientRes);
-    } catch {
-      // If we can't load state, user can still navigate to appropriate pages
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+        setConsent(consentRes);
+        setPatient(patientRes);
+      } catch {
+        // If we can't load state, user can still navigate to appropriate pages
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     // Track whether getSession has resolved so onAuthStateChange
@@ -126,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { session },
     } = await supabase.auth.getSession();
-    await loadUserState(session);
+    await loadUserState(session, true);
   };
 
   return (

@@ -180,12 +180,18 @@
     @apply ring-2 ring-ring ring-offset-2 ring-offset-background outline-none;
   }
 
-  /* Reduced motion: disable pulse on skeletons */
+  /* Reduced motion: disable pulse on skeletons and step pulse */
   @media (prefers-reduced-motion: reduce) {
     .animate-pulse {
       animation: none;
     }
   }
+}
+
+/* ─── Progress stepper pulse ─────────────────────────────── */
+@keyframes step-pulse {
+  0% { box-shadow: 0 0 0 0 oklch(from var(--primary) l c h / 0.3); }
+  100% { box-shadow: 0 0 0 8px oklch(from var(--primary) l c h / 0); }
 }
 
 /* ─── Forced colors (Windows High Contrast) ──────────────── */

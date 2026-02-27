@@ -94,7 +94,12 @@ function RequirePatient() {
   const { patient, loading } = useAuth();
   if (loading) return <LoadingScreen />;
   if (!patient) return <Navigate to="/connect" replace />;
-  if (patient.status === "pending" || patient.status === "querying") {
+  if (
+    patient.status === "pending" ||
+    patient.status === "querying" ||
+    patient.status === "downloading" ||
+    patient.status === "processing"
+  ) {
     return <Navigate to="/progress" replace />;
   }
   return <Outlet />;
@@ -107,7 +112,12 @@ function RootRedirect() {
   if (!user) return <Navigate to="/login" replace />;
   if (!consent) return <Navigate to="/consent" replace />;
   if (!patient) return <Navigate to="/connect" replace />;
-  if (patient.status === "pending" || patient.status === "querying") {
+  if (
+    patient.status === "pending" ||
+    patient.status === "querying" ||
+    patient.status === "downloading" ||
+    patient.status === "processing"
+  ) {
     return <Navigate to="/progress" replace />;
   }
   return <Navigate to="/home" replace />;

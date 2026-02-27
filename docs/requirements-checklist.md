@@ -40,8 +40,8 @@ Build a consumer "personal health record + insights" web app using the Metriport
   - **External LLM data flow:** Dedicated `llmDataFlow` consent checkbox explains questions are de-identified (personal identifiers stripped) before processing, health record excerpts include clinical details (conditions, medications, dates) but not name, address, or other direct identifiers. Confirm step warns that excerpts sent to the AI provider are subject to the provider's data handling policies.
   - **Delete controls & consent revocation:** `deletionRights` checkbox covers both disabling AI chat in Settings (stops sending data to AI provider) and full permanent deletion of records, chat history, and account data.
   - **Backend enforcement:** Consent state stored via `POST /api/consent`; `RequireConsent` guard checks consent before allowing navigation to `/connect` or any data routes.
-- [ ] **Connect Sandbox Record** screen: pick a sandbox persona and link it to the signed-in user.
-- [ ] Trigger Metriport **Network Query** (async) to pull data and track the status in the UI for the user, store the data for later processing.
+- [x] **Connect Sandbox Record** screen: pick a sandbox persona and link it to the signed-in user.
+- [x] Trigger Metriport **Network Query** (async) to pull data and track the status in the UI for the user, store the data for later processing.
 - [ ] Example UI flow: Sign in → 2) Consent → 3) Select sandbox persona → 4) Retrieval progress screen → 5) Dashboard ready → 6) Timeline drilldown → 7) Deep Insight → 8) Chat with citations → 9) Delete my data
 
 #### Core UX

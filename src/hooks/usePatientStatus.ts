@@ -3,7 +3,7 @@ import { api } from "../lib/api";
 import type { PatientStatus } from "../types/api";
 
 export function usePatientStatus() {
-  const [status, setStatus] = useState<string | null>(null);
+  const [status, setStatus] = useState<PatientStatus["status"] | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval>>(undefined);
 
   useEffect(() => {

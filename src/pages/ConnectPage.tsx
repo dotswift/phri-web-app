@@ -69,8 +69,8 @@ export function ConnectPage() {
     setLoading(true);
     try {
       await api.post<Patient>("/api/patient/connect", { persona: selected });
-      await refreshUserState();
       navigate("/progress");
+      refreshUserState();
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Failed to connect persona",

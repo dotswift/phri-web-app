@@ -21,7 +21,7 @@ export interface Patient {
   metriportPatientId: string;
   sandboxPersona: string;
   facilityId: string;
-  status: "pending" | "querying" | "partial" | "ready" | "failed";
+  status: "pending" | "querying" | "downloading" | "processing" | "partial" | "ready" | "failed";
   hasPartialData: boolean;
   queryRequestId: string | null;
   lastSyncedAt: string | null;
@@ -31,7 +31,7 @@ export interface Patient {
 export type Persona = "Jane" | "Chris" | "Ollie" | "Kyla" | "Andreas";
 
 export interface PatientStatus {
-  status: "pending" | "querying" | "partial" | "ready" | "failed";
+  status: "pending" | "querying" | "downloading" | "processing" | "partial" | "ready" | "failed";
 }
 
 // --- Citation ---
