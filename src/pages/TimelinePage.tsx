@@ -2,6 +2,13 @@ import { useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Tabs,
   TabsList,
   TabsTrigger,
@@ -13,7 +20,7 @@ import { TimelineDateFilter } from "@/components/timeline/TimelineDateFilter";
 import { TimelineList } from "@/components/timeline/TimelineList";
 import { TimelineMiniStrip } from "@/components/timeline/TimelineMiniStrip";
 import { TimelineScatterChart } from "@/components/charts/TimelineScatterChart";
-import { useTimelineData } from "@/hooks/useTimelineData";
+import { useTimelineData, type SortOption } from "@/hooks/useTimelineData";
 import {
   useResourceDetail,
   endpointForResourceType,
@@ -41,12 +48,18 @@ export function TimelinePage() {
     return raw ? new Date(raw) : null;
   }, [searchParams]);
 
+  const sortBy = useMemo((): SortOption => {
+    const raw = searchParams.get("sortBy");
+    if (raw === "date-asc" || raw === "type" || raw === "name-asc") return raw;
+    return "date-desc";
+  }, [searchParams]);
+
   const filters = useMemo(
-    () => ({ resourceTypes, dateFrom, dateTo }),
-    [resourceTypes, dateFrom, dateTo],
+    () => ({ resourceTypes, dateFrom, dateTo, sortBy }),
+    [resourceTypes, dateFrom, dateTo, sortBy],
   );
 
-  const { allItems, filteredItems, loading, resourceTypeCounts } =
+  const { allItems, filteredItems, loading, dateExtent, resourceTypeCounts } =
     useTimelineData(filters);
 
   // Deep-link: ?resourceId=abc opens modal then cleans URL
@@ -94,20 +107,48 @@ export function TimelinePage() {
     [searchParams, setSearchParams],
   );
 
+  const handleSortChange = useCallback(
+    (value: string) => {
+      const params = new URLSearchParams(searchParams);
+      if (value === "date-desc") {
+        params.delete("sortBy");
+      } else {
+        params.set("sortBy", value);
+      }
+      setSearchParams(params);
+    },
+    [searchParams, setSearchParams],
+  );
+
   const hasData = !loading && filteredItems.length > 0;
 
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-baseline justify-between">
+      <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Timeline</h1>
-        {!loading && (
-          <p className="text-sm text-muted-foreground">
-            {filteredItems.length === allItems.length
-              ? `${allItems.length} events`
-              : `${filteredItems.length} of ${allItems.length} events`}
-          </p>
-        )}
+        <div className="flex items-center gap-3">
+          {!loading && (
+            <p className="hidden text-sm text-muted-foreground sm:block">
+              {filteredItems.length === allItems.length
+                ? `${allItems.length} events`
+                : `${filteredItems.length} of ${allItems.length} events`}
+            </p>
+          )}
+          {!loading && allItems.length > 0 && (
+            <Select value={sortBy} onValueChange={handleSortChange}>
+              <SelectTrigger className="h-8 w-[140px] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date-desc">Date (Newest)</SelectItem>
+                <SelectItem value="date-asc">Date (Oldest)</SelectItem>
+                <SelectItem value="type">Type</SelectItem>
+                <SelectItem value="name-asc">Name (A–Z)</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+        </div>
       </div>
 
       {/* Filter bars */}
@@ -121,6 +162,7 @@ export function TimelinePage() {
           <TimelineDateFilter
             dateFrom={dateFrom}
             dateTo={dateTo}
+            dateExtent={dateExtent}
             onChange={handleDateChange}
           />
         </div>
@@ -153,18 +195,21 @@ export function TimelinePage() {
             />
           </div>
 
-          {/* Mobile: tabs for List / Visual */}
+          {/* Mobile: tabs for List / Overview */}
           <div className="md:hidden">
             <Tabs defaultValue="list">
               <TabsList>
                 <TabsTrigger value="list">List</TabsTrigger>
-                <TabsTrigger value="visual">Visual</TabsTrigger>
+                <TabsTrigger value="overview">Overview</TabsTrigger>
               </TabsList>
               <TabsContent value="list">
-                <TimelineList items={filteredItems} />
+                <TimelineList items={filteredItems} sortBy={sortBy} />
               </TabsContent>
-              <TabsContent value="visual">
-                <TimelineMiniStrip items={filteredItems} />
+              <TabsContent value="overview">
+                <TimelineMiniStrip
+                  items={filteredItems}
+                  onDateRangeSelect={handleDateChange}
+                />
               </TabsContent>
             </Tabs>
           </div>
@@ -172,7 +217,7 @@ export function TimelinePage() {
           {/* Desktop list (always visible) */}
           {hasData && (
             <div className="hidden md:block">
-              <TimelineList items={filteredItems} />
+              <TimelineList items={filteredItems} sortBy={sortBy} />
             </div>
           )}
         </>

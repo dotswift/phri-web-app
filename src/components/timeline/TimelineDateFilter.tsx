@@ -1,5 +1,14 @@
-import { useState } from "react";
-import { subDays, subMonths, subYears, startOfDay, endOfDay } from "date-fns";
+import { useState, useMemo } from "react";
+import {
+  startOfDay,
+  endOfDay,
+  startOfYear,
+  endOfYear,
+  getYear,
+  subMonths,
+  subYears,
+  differenceInDays,
+} from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -8,89 +17,154 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 
-type Preset = "all" | "1y" | "6m" | "90d" | "30d" | "custom";
+interface SmartPreset {
+  key: string;
+  label: string;
+  from: Date | null;
+  to: Date | null;
+}
 
 interface TimelineDateFilterProps {
   dateFrom: Date | null;
   dateTo: Date | null;
+  dateExtent: [Date, Date] | null;
   onChange: (from: Date | null, to: Date | null) => void;
 }
 
-const PRESETS: { key: Preset; label: string }[] = [
-  { key: "all", label: "All Time" },
-  { key: "1y", label: "1Y" },
-  { key: "6m", label: "6M" },
-  { key: "90d", label: "90D" },
-  { key: "30d", label: "30D" },
-  { key: "custom", label: "Custom" },
-];
+function buildSmartPresets(dateExtent: [Date, Date] | null): SmartPreset[] {
+  const presets: SmartPreset[] = [
+    { key: "all", label: "All Time", from: null, to: null },
+  ];
 
-function presetRange(key: Preset): [Date | null, Date | null] {
-  const now = new Date();
-  switch (key) {
-    case "all":
-      return [null, null];
-    case "1y":
-      return [startOfDay(subYears(now, 1)), endOfDay(now)];
-    case "6m":
-      return [startOfDay(subMonths(now, 6)), endOfDay(now)];
-    case "90d":
-      return [startOfDay(subDays(now, 90)), endOfDay(now)];
-    case "30d":
-      return [startOfDay(subDays(now, 30)), endOfDay(now)];
-    default:
-      return [null, null];
+  if (!dateExtent) {
+    presets.push({ key: "custom", label: "Custom", from: null, to: null });
+    return presets;
   }
+
+  const [minDate, maxDate] = dateExtent;
+  const now = new Date();
+
+  // If most recent data is within a year, add recency presets
+  if (differenceInDays(now, maxDate) < 365) {
+    presets.push({
+      key: "last-12m",
+      label: "Last 12M",
+      from: startOfDay(subYears(now, 1)),
+      to: endOfDay(now),
+    });
+    presets.push({
+      key: "last-6m",
+      label: "Last 6M",
+      from: startOfDay(subMonths(now, 6)),
+      to: endOfDay(now),
+    });
+  }
+
+  // Year-based presets
+  const minYear = getYear(minDate);
+  const maxYear = getYear(maxDate);
+  const yearSpan = maxYear - minYear + 1;
+
+  if (yearSpan <= 5) {
+    // One preset per year, descending
+    for (let y = maxYear; y >= minYear; y--) {
+      const d = new Date(y, 0, 1);
+      presets.push({
+        key: `year-${y}`,
+        label: String(y),
+        from: startOfYear(d),
+        to: endOfYear(d),
+      });
+    }
+  } else {
+    // Most recent 3 years individually
+    for (let y = maxYear; y >= maxYear - 2; y--) {
+      const d = new Date(y, 0, 1);
+      presets.push({
+        key: `year-${y}`,
+        label: String(y),
+        from: startOfYear(d),
+        to: endOfYear(d),
+      });
+    }
+    // Group the rest
+    const groupEnd = maxYear - 3;
+    if (groupEnd >= minYear) {
+      presets.push({
+        key: `years-${minYear}-${groupEnd}`,
+        label: minYear === groupEnd ? String(minYear) : `${minYear}\u2013${groupEnd}`,
+        from: startOfYear(new Date(minYear, 0, 1)),
+        to: endOfYear(new Date(groupEnd, 0, 1)),
+      });
+    }
+  }
+
+  presets.push({ key: "custom", label: "Custom", from: null, to: null });
+  return presets;
 }
 
-function detectPreset(from: Date | null, to: Date | null): Preset {
-  if (!from && !to) return "all";
-  if (!from || !to) return "custom";
+function detectActivePreset(
+  presets: SmartPreset[],
+  dateFrom: Date | null,
+  dateTo: Date | null,
+): string {
+  if (!dateFrom && !dateTo) return "all";
+  if (!dateFrom || !dateTo) return "custom";
 
-  const now = new Date();
-  const diffMs = now.getTime() - from.getTime();
-  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+  const fromTime = dateFrom.getTime();
+  const toTime = dateTo.getTime();
+  const DAY_MS = 86_400_000;
 
-  // Allow 1 day tolerance for preset detection
-  if (diffDays >= 29 && diffDays <= 31) return "30d";
-  if (diffDays >= 89 && diffDays <= 91) return "90d";
-  if (diffDays >= 179 && diffDays <= 183) return "6m";
-  if (diffDays >= 364 && diffDays <= 366) return "1y";
-
+  for (const preset of presets) {
+    if (preset.key === "all" || preset.key === "custom" || !preset.from || !preset.to) continue;
+    if (
+      Math.abs(preset.from.getTime() - fromTime) < DAY_MS &&
+      Math.abs(preset.to.getTime() - toTime) < DAY_MS
+    ) {
+      return preset.key;
+    }
+  }
   return "custom";
 }
 
 export function TimelineDateFilter({
   dateFrom,
   dateTo,
+  dateExtent,
   onChange,
 }: TimelineDateFilterProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
-  const activePreset = detectPreset(dateFrom, dateTo);
 
-  function handlePreset(key: Preset) {
-    if (key === "custom") {
+  const presets = useMemo(() => buildSmartPresets(dateExtent), [dateExtent]);
+  const activeKey = detectActivePreset(presets, dateFrom, dateTo);
+
+  function handlePreset(preset: SmartPreset) {
+    if (preset.key === "custom") {
       setPopoverOpen(true);
       return;
     }
-    const [from, to] = presetRange(key);
-    onChange(from, to);
+    onChange(preset.from, preset.to);
   }
+
+  const pillClass = (active: boolean) =>
+    `inline-flex shrink-0 items-center rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+      active
+        ? "bg-foreground text-background"
+        : "bg-muted text-muted-foreground hover:bg-muted/80"
+    }`;
 
   return (
     <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-      {PRESETS.map(({ key, label }) =>
-        key === "custom" ? (
-          <Popover key={key} open={popoverOpen} onOpenChange={setPopoverOpen}>
+      {presets.map((preset) =>
+        preset.key === "custom" ? (
+          <Popover
+            key={preset.key}
+            open={popoverOpen}
+            onOpenChange={setPopoverOpen}
+          >
             <PopoverTrigger asChild>
-              <button
-                className={`inline-flex shrink-0 items-center rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                  activePreset === "custom"
-                    ? "bg-foreground text-background"
-                    : "bg-muted text-muted-foreground hover:bg-muted/80"
-                }`}
-              >
-                {label}
+              <button className={pillClass(activeKey === "custom")}>
+                {preset.label}
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
@@ -128,15 +202,11 @@ export function TimelineDateFilter({
           </Popover>
         ) : (
           <button
-            key={key}
-            onClick={() => handlePreset(key)}
-            className={`inline-flex shrink-0 items-center rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-              activePreset === key
-                ? "bg-foreground text-background"
-                : "bg-muted text-muted-foreground hover:bg-muted/80"
-            }`}
+            key={preset.key}
+            onClick={() => handlePreset(preset)}
+            className={pillClass(activeKey === preset.key)}
           >
-            {label}
+            {preset.label}
           </button>
         ),
       )}

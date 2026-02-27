@@ -3,10 +3,13 @@ import { api } from "@/lib/api";
 import { toast } from "sonner";
 import type { TimelineItem, TimelineResponse } from "@/types/api";
 
+export type SortOption = "date-desc" | "date-asc" | "type" | "name-asc";
+
 export interface TimelineFilters {
   resourceTypes: Set<string>;
   dateFrom: Date | null;
   dateTo: Date | null;
+  sortBy: SortOption;
 }
 
 export interface TimelineData {
@@ -118,5 +121,49 @@ export function useTimelineData(filters: TimelineFilters): TimelineData {
     return items;
   }, [allItems, filters.resourceTypes, filters.dateFrom, filters.dateTo]);
 
-  return { allItems, filteredItems, loading, dateExtent, resourceTypeCounts };
+  const sortedItems = useMemo(() => {
+    const items = [...filteredItems];
+    const dateVal = (d: string | null) =>
+      d ? new Date(d).getTime() : -Infinity;
+
+    switch (filters.sortBy) {
+      case "date-asc":
+        return items.sort((a, b) => {
+          const da = dateVal(a.dateRecorded);
+          const db = dateVal(b.dateRecorded);
+          if (da === -Infinity && db === -Infinity) return 0;
+          if (da === -Infinity) return 1;
+          if (db === -Infinity) return -1;
+          return da - db;
+        });
+      case "type":
+        return items.sort((a, b) => {
+          const tc = a.resourceType.localeCompare(b.resourceType);
+          if (tc !== 0) return tc;
+          return dateVal(b.dateRecorded) - dateVal(a.dateRecorded);
+        });
+      case "name-asc":
+        return items.sort((a, b) =>
+          (a.displayText ?? "").localeCompare(b.displayText ?? ""),
+        );
+      case "date-desc":
+      default:
+        return items.sort((a, b) => {
+          const da = dateVal(a.dateRecorded);
+          const db = dateVal(b.dateRecorded);
+          if (da === -Infinity && db === -Infinity) return 0;
+          if (da === -Infinity) return 1;
+          if (db === -Infinity) return -1;
+          return db - da;
+        });
+    }
+  }, [filteredItems, filters.sortBy]);
+
+  return {
+    allItems,
+    filteredItems: sortedItems,
+    loading,
+    dateExtent,
+    resourceTypeCounts,
+  };
 }

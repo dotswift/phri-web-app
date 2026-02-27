@@ -25,37 +25,44 @@ export function TimelineItemCard({ item }: { item: TimelineItem }) {
         openResourceDetail(item.id, endpointForResourceType(item.resourceType))
       }
     >
-      <CardContent className="flex items-center gap-3 p-3">
+      <CardContent className="flex items-start gap-2 p-2">
         {/* Date block */}
-        <div className="flex w-10 shrink-0 flex-col items-center text-center">
+        <div className="flex w-8 shrink-0 flex-col items-center pt-0.5 text-center">
           {date ? (
             <>
-              <span className="text-2xl font-bold leading-none">
+              <span className="text-lg font-bold leading-none">
                 {format(date, "d")}
               </span>
-              <span className="text-xs uppercase text-muted-foreground">
+              <span className="text-[10px] uppercase text-muted-foreground">
                 {format(date, "MMM")}
               </span>
             </>
           ) : (
-            <span className="text-xs text-muted-foreground">--</span>
+            <span className="text-[10px] text-muted-foreground">--</span>
           )}
         </div>
 
         {/* Content */}
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">
-            {item.displayText ?? "Unknown"}
-          </p>
-          <p className="truncate text-xs text-muted-foreground">
-            {item.source}
-          </p>
-        </div>
-
-        {/* Badges */}
-        <div className="flex shrink-0 items-center gap-2">
-          <CitationBadge citation={item.citation} />
-          <ResourceTypeBadge resourceType={item.resourceType} />
+          <div className="flex items-center gap-2">
+            <p className="min-w-0 flex-1 truncate text-sm font-medium">
+              {item.displayText ?? "Unknown"}
+            </p>
+            {/* Desktop: badges inline */}
+            <div className="hidden shrink-0 items-center gap-1.5 sm:flex">
+              <CitationBadge citation={item.citation} />
+              <ResourceTypeBadge resourceType={item.resourceType} />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+              {item.source}
+            </p>
+            {/* Mobile: only resource type badge */}
+            <div className="flex shrink-0 sm:hidden">
+              <ResourceTypeBadge resourceType={item.resourceType} />
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
