@@ -31,7 +31,6 @@ import {
   Stethoscope,
   FileText,
   Eye,
-  AlertTriangle,
 } from "lucide-react";
 
 function getGreeting(): string {
@@ -96,13 +95,6 @@ const SUMMARY_CARDS: {
     icon: Pill,
     link: "/records/medications",
     resourceType: "MedicationRequest",
-  },
-  {
-    key: "allergies",
-    label: "Allergies",
-    icon: AlertTriangle,
-    link: "/records/conditions",
-    resourceType: "AllergyIntolerance",
   },
 ];
 

@@ -32,7 +32,6 @@ const RESOURCE_TYPES = [
   "Observation",
   "Procedure",
   "MedicationRequest",
-  "AllergyIntolerance",
 ];
 
 export function TimelinePage() {

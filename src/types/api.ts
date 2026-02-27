@@ -59,7 +59,6 @@ export interface DashboardResponse {
     observations: number;
     immunizations: number;
     encounters: number;
-    allergies: number;
     procedures: number;
     diagnosticReports: number;
   };

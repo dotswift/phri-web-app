@@ -22,7 +22,7 @@ const CATEGORIES = [
     label: "Health Conditions",
     icon: Heart,
     to: "/records/conditions",
-    keys: ["conditions", "allergies"] as const,
+    keys: ["conditions"] as const,
     resourceType: "Condition",
   },
   {
