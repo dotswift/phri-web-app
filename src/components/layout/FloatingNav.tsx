@@ -118,7 +118,7 @@ export function DesktopSidebar() {
         <NavLink to="/home" className="text-base font-bold tracking-tight text-sidebar-foreground">
           PHRI
         </NavLink>
-        <p className="text-xs text-sidebar-foreground/50 mt-0.5">
+        <p className="text-xs text-sidebar-foreground/70 mt-0.5">
           Personal Health Record & Insights
         </p>
       </div>

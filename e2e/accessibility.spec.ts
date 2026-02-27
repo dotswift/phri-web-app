@@ -89,7 +89,7 @@ test.describe.serial("Accessibility audits", () => {
 
   // ── Dark mode toggle ──────────────────────────────────────
   test("dark mode toggle works", async () => {
-    await page.goto("/profile/settings");
+    await page.goto("/settings");
     await page.waitForSelector("h1");
 
     // Find the theme toggle button
@@ -114,11 +114,11 @@ test.describe.serial("Accessibility audits", () => {
   const pagesToAudit = [
     { name: "Home", url: "/home" },
     { name: "Records", url: "/records" },
-    { name: "Timeline", url: "/records/timeline" },
+    { name: "Timeline", url: "/timeline" },
     { name: "Immunizations", url: "/records/immunizations" },
     { name: "Medication Insights", url: "/records/medications/insights" },
     { name: "Chat", url: "/chat" },
-    { name: "Settings", url: "/profile/settings" },
+    { name: "Settings", url: "/settings" },
   ];
 
   for (const { name, url } of pagesToAudit) {

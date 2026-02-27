@@ -100,28 +100,23 @@ test.describe.serial("PHRI Demo Walkthrough", () => {
     ).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(PAUSE);
 
-    // Hover over summary cards
-    const main = page.locator("main, [class*='flex-1']").last();
+    // Hover over navigation cards
+    const main = page.locator("#main-content");
     for (const label of [
-      "Conditions",
-      "Observations",
-      "Encounters",
+      "Timeline",
+      "Medications",
+      "Immunizations",
+      "Chat",
     ]) {
-      const card = main.getByText(label).locator("../..");
+      const card = main.getByText(label).first().locator("../..");
       await card.hover();
       await page.waitForTimeout(1000);
     }
 
-    // Hover over quick action pills
-    await page.getByRole("link", { name: /timeline/i }).hover();
+    // Hover over insight summary cards
+    await main.getByText("Medication Insights").scrollIntoViewIfNeeded();
     await page.waitForTimeout(1200);
-    await page.getByRole("link", { name: /deep dive/i }).hover();
-    await page.waitForTimeout(1200);
-    await page.getByRole("link", { name: /chat/i }).last().hover();
-    await page.waitForTimeout(1200);
-
-    // Pause on Recent Activity
-    await page.getByText("Recent Activity").scrollIntoViewIfNeeded();
+    await main.getByText("Immunization Insights").scrollIntoViewIfNeeded();
     await page.waitForTimeout(PAUSE);
   });
 

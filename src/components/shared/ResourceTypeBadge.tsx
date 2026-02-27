@@ -3,7 +3,7 @@ import { FHIR_RESOURCE_COLORS } from "@/lib/colors";
 const DEFAULT_COLOR = {
   badge: "oklch(0.55 0.02 260)",
   cardBg: "oklch(0.95 0.005 260)",
-  labelText: "oklch(0.40 0.02 260)",
+  labelText: "oklch(0.25 0.02 260)",
   hue: 260,
 };
 

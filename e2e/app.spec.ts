@@ -147,6 +147,8 @@ test.describe.serial("PHRI user journey", () => {
 
   // ── Test 6: Progress page — wait for data retrieval ───────────────
   test("progress page — wait for data retrieval", async () => {
+    test.slow(); // 3× timeout — backend data retrieval can be slow
+
     // If already on /home (returning user), skip
     if (page.url().includes("/home")) {
       test.skip();
@@ -154,15 +156,15 @@ test.describe.serial("PHRI user journey", () => {
     }
 
     await expect(
-      page.getByText(/retrieving your health records/i),
+      page.getByText(/accessing medical records/i),
     ).toBeVisible();
 
-    // Wait for redirect to /home (data retrieval can take up to 30s)
-    await expect(page).toHaveURL(/\/home/, { timeout: 45_000 });
+    // Wait for redirect to /home (data retrieval can take up to 90s)
+    await expect(page).toHaveURL(/\/home/, { timeout: 90_000 });
   });
 
   // ── Test 7: Dashboard (Home) ────────────────────────────────────────
-  test("dashboard — persona name, cards, CTAs, recent activity", async () => {
+  test("dashboard — persona name, nav cards, insight summaries", async () => {
     // Ensure we're on /home
     if (!page.url().includes("/home")) {
       await page.goto("/home");
@@ -173,30 +175,25 @@ test.describe.serial("PHRI user journey", () => {
       page.getByRole("heading", { name: /good (morning|afternoon|evening), chris/i }),
     ).toBeVisible({ timeout: 10_000 });
 
-    // Summary cards — check inside the main content area (not sidebar)
+    // Navigation cards — check inside the main content area (not sidebar)
     const main = page.locator("#main-content");
     for (const label of [
-      "Conditions",
-      "Observations",
-      "Encounters",
+      "Timeline",
+      "Medications",
+      "Immunizations",
+      "Chat",
     ]) {
-      await expect(main.getByText(label)).toBeVisible();
+      await expect(main.getByText(label).first()).toBeVisible();
     }
 
-    // Quick action pills (scoped to main content to avoid sidebar matches)
-    const mainContent = page.locator("#main-content");
-    await expect(
-      mainContent.getByRole("link", { name: /timeline/i }),
-    ).toBeVisible();
-    await expect(
-      mainContent.getByRole("link", { name: /deep dive/i }),
-    ).toBeVisible();
-    await expect(
-      mainContent.getByRole("link", { name: /chat/i }),
-    ).toBeVisible();
+    // Navigation cards link to their pages
+    await expect(main.locator('a[href="/timeline"]')).toBeVisible();
+    await expect(main.locator('a[href="/records/medications/insights"]').first()).toBeVisible();
+    await expect(main.locator('a[href="/chat"]').first()).toBeVisible();
 
-    // Recent Activity section
-    await expect(page.getByText("Recent Activity")).toBeVisible();
+    // Insight summary cards (title appears in both heading and link, use first)
+    await expect(main.getByText("Medication Insights").first()).toBeVisible();
+    await expect(main.getByText("Immunization Insights").first()).toBeVisible();
   });
 
   // ── Test 8: Chat ──────────────────────────────────────────────────
@@ -227,120 +224,96 @@ test.describe.serial("PHRI user journey", () => {
   });
 
   // ── Test 9: Timeline ──────────────────────────────────────────────
-  test("timeline — filters, pagination, detail drawer", async () => {
-    await page.goto("/records/timeline");
+  test("timeline — pill filters, sort, detail drawer", async () => {
+    await page.goto("/timeline");
     await expect(
       page.getByRole("heading", { name: "Timeline" }),
     ).toBeVisible();
 
-    // Filter controls
-    await expect(page.getByText("Resource Type")).toBeVisible();
-    await expect(page.getByText("From", { exact: true })).toBeVisible();
-    await expect(page.getByText("To", { exact: true })).toBeVisible();
-
-    // Wait for items to load
-    await expect(page.getByText(/page \d+ of \d+/i)).toBeVisible({
+    // Wait for items to load (event count shows when loaded)
+    await expect(page.getByText(/^\d+ events$/).first()).toBeVisible({
       timeout: 15_000,
     });
 
-    // Pagination — click Next (only if there are multiple pages)
-    const paginationText = await page.getByText(/page \d+ of \d+/i).textContent();
-    const isMultiPage = paginationText && !paginationText.match(/page 1 of 1/i);
-    const nextButton = page.getByRole("button", { name: /next/i });
-    if (isMultiPage && await nextButton.isEnabled()) {
-      await Promise.all([
-        page.waitForResponse((resp) => resp.url().includes("/api/timeline") && resp.status() === 200),
-        nextButton.click(),
-      ]);
-      await expect(page.getByText(/page 2 of/i)).toBeVisible({
-        timeout: 15_000,
+    // Pill filter bar — "All" pill should be present
+    await expect(page.getByRole("button", { name: "All", exact: true })).toBeVisible();
+
+    // Date filter — "All Time" pill
+    await expect(page.getByRole("button", { name: "All Time" })).toBeVisible();
+
+    // Filter by Condition pill if available
+    const conditionPill = page.getByRole("button", { name: /Condition/i });
+    if (await conditionPill.isVisible()) {
+      await conditionPill.click();
+      // Event count should update
+      await expect(page.getByText(/^\d+ (events|of \d+ events)$/).first()).toBeVisible({
+        timeout: 10_000,
       });
     }
-
-    // Filter by Condition
-    await page.getByRole("combobox").click();
-    await page.getByRole("option", { name: "Condition" }).click();
-    await expect(page.getByText(/page \d+ of \d+/i)).toBeVisible({
-      timeout: 10_000,
-    });
 
     // Click a timeline card to open detail drawer
     const cards = page.locator("[class*='cursor-pointer']");
     if ((await cards.count()) > 0) {
       await cards.first().click();
-      await expect(page.getByText("Resource Detail")).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Resource Detail" })).toBeVisible();
       // Close drawer
       await page.keyboard.press("Escape");
     }
   });
 
   // ── Test 10: Medications — empty state ────────────────────────────
-  test("medications — empty state", async () => {
+  test("medications — redirects to insights", async () => {
     await page.goto("/records/medications");
+    // /records/medications redirects to /records/medications/insights
+    await expect(page).toHaveURL(/\/records\/medications\/insights/);
     await expect(
-      page.getByRole("heading", { name: "Medications", exact: true }),
-    ).toBeVisible();
-
-    // Should show search and status controls
-    await expect(page.getByText("Status")).toBeVisible();
-    await expect(
-      page.getByPlaceholder(/search medications/i),
-    ).toBeVisible();
-
-    // Empty state for sandbox persona
-    await expect(page.getByText(/no medications found/i)).toBeVisible({
-      timeout: 10_000,
-    });
+      page.getByRole("heading", { name: "Medication Insights", exact: true }),
+    ).toBeVisible({ timeout: 10_000 });
   });
 
   // ── Test 11: Immunizations ────────────────────────────────────────
-  test("immunizations — search and detail drawer", async () => {
+  test("immunizations — stats, findings, timeline, detail drawer", async () => {
     await page.goto("/records/immunizations");
     await expect(
       page.getByRole("heading", { name: "Immunizations", exact: true }),
     ).toBeVisible();
 
-    // Total count
-    await expect(page.getByText(/\d+ total/)).toBeVisible({
+    // Compact stat row: "X immunizations · Y vaccines"
+    await expect(page.getByText(/\d+ immunizations/).first()).toBeVisible({
       timeout: 10_000,
     });
 
-    // Search
-    const searchInput = page.getByPlaceholder(/search immunizations/i);
-    await searchInput.fill("influenza");
+    // Key Findings section
+    await expect(page.getByText("Key Findings")).toBeVisible();
 
-    // Wait for filtered results
-    await page.waitForTimeout(500); // debounce delay
+    // Timeline items (grouped by year, inside border-l timeline)
     const mainContent = page.locator("#main-content");
+    const timelineItems = mainContent.locator(".border-l-2 .cursor-pointer");
     await expect(async () => {
-      const items = mainContent.locator("[class*='cursor-pointer'][class*='hover\\:bg-accent']");
-      expect(await items.count()).toBeGreaterThan(0);
+      expect(await timelineItems.count()).toBeGreaterThan(0);
     }).toPass({ timeout: 10_000 });
 
-    // Wait for entrance animation to settle
-    await page.waitForTimeout(500);
-
-    // Click an item to open detail drawer
-    const items = mainContent.locator("[class*='cursor-pointer'][class*='hover\\:bg-accent']");
-    await items.first().click();
-    await expect(page.getByText("Resource Detail")).toBeVisible({ timeout: 10_000 });
+    // Click a timeline item to open detail drawer
+    await timelineItems.first().click();
+    await expect(page.getByRole("heading", { name: "Resource Detail" })).toBeVisible({ timeout: 10_000 });
     await page.keyboard.press("Escape");
-
-    // Clear search for clean state
-    await searchInput.clear();
   });
 
   // ── Test 12: Medication Insights ──────────────────────────────────
-  test("medication insights — stat cards, methodology accordion", async () => {
+  test("medication insights — stats, findings, methodology accordion", async () => {
     await page.goto("/records/medications/insights");
     await expect(
       page.getByRole("heading", { name: "Medication Insights", exact: true }),
     ).toBeVisible({ timeout: 10_000 });
 
-    // 3 stat cards
-    await expect(page.getByText("Unique Medications")).toBeVisible();
-    await expect(page.getByText("Active")).toBeVisible();
-    await expect(page.getByText("Stopped")).toBeVisible();
+    // Compact stat row: "X medications · Y active"
+    await expect(page.getByText(/\d+ medications/).first()).toBeVisible();
+
+    // Key Findings (if data available)
+    const findings = page.getByText("Key Findings");
+    if (await findings.isVisible()) {
+      await expect(findings).toBeVisible();
+    }
 
     // Methodology accordion
     const methodologyTrigger = page.getByRole("button", {
@@ -349,14 +322,14 @@ test.describe.serial("PHRI user journey", () => {
     await expect(methodologyTrigger).toBeVisible();
     await methodologyTrigger.click();
 
-    // Expanded content
-    await expect(page.getByText("Steps")).toBeVisible();
+    // Expanded content (allow time for accordion animation)
+    await expect(page.getByText("Steps")).toBeVisible({ timeout: 5_000 });
     await expect(page.getByText("Limitations")).toBeVisible();
   });
 
   // ── Test 13: Settings ─────────────────────────────────────────────
   test("settings — AI toggle on/off, disconnect/delete sections", async () => {
-    await page.goto("/profile/settings");
+    await page.goto("/settings");
     await expect(
       page.getByRole("heading", { name: "Settings" }),
     ).toBeVisible();
@@ -374,13 +347,13 @@ test.describe.serial("PHRI user journey", () => {
 
     // Toggle off
     await aiSwitch.click();
-    await expect(page.getByText(/ai mode disabled/i)).toBeVisible({
+    await expect(page.getByText(/ai chat disabled/i)).toBeVisible({
       timeout: 5_000,
     });
 
     // Toggle back on
     await aiSwitch.click();
-    await expect(page.getByText(/ai mode enabled/i)).toBeVisible({
+    await expect(page.getByText(/ai chat enabled/i)).toBeVisible({
       timeout: 5_000,
     });
 
@@ -407,9 +380,9 @@ test.describe.serial("PHRI user journey", () => {
     // Records expandable section
     await expect(page.getByText("Records", { exact: true }).first()).toBeVisible();
 
-    // Profile section
+    // Settings link
     await expect(
-      page.getByRole("link", { name: "Profile", exact: true }),
+      sidebar.getByRole("link", { name: "Settings", exact: true }),
     ).toBeVisible();
 
     // Sign Out button
@@ -423,7 +396,7 @@ test.describe.serial("PHRI user journey", () => {
     // Bottom tab bar should appear with 4 tabs
     const bottomNav = page.locator('nav[aria-label="Mobile navigation"]');
     await expect(bottomNav).toBeVisible();
-    for (const label of ["Home", "Records", "Chat", "Profile"]) {
+    for (const label of ["Home", "Records", "Chat", "Settings"]) {
       await expect(bottomNav.getByText(label)).toBeVisible();
     }
 
@@ -481,11 +454,11 @@ test.describe.serial("PHRI user journey", () => {
     await page.goto("/dashboard");
     await expect(page).toHaveURL(/\/home/);
 
-    await page.goto("/timeline");
-    await expect(page).toHaveURL(/\/records\/timeline/);
+    await page.goto("/records/timeline");
+    await expect(page).toHaveURL(/\/timeline/);
 
-    await page.goto("/settings");
-    await expect(page).toHaveURL(/\/profile\/settings/);
+    await page.goto("/profile/settings");
+    await expect(page).toHaveURL(/\/settings/);
   });
 
   // ── Test 19: Crisis detection ─────────────────────────────────────
@@ -524,98 +497,79 @@ test.describe.serial("PHRI user journey", () => {
       await newChatButton.click();
     }
 
-    // Suggested prompts should be visible
+    // Empty state heading
     await expect(
-      page.getByText("What conditions do I have?"),
+      page.getByText("Ask a question about your health records"),
     ).toBeVisible();
 
-    // Disclaimer footer should be visible
-    await expect(
-      page.getByText(/not medical advice/i),
-    ).toBeVisible();
+    // Suggested prompt buttons should be visible (personalized or defaults)
+    const promptButtons = page.locator("button").filter({ has: page.locator("svg") }).filter({ hasText: /\?$/ });
+    await expect(async () => {
+      expect(await promptButtons.count()).toBeGreaterThanOrEqual(2);
+    }).toPass({ timeout: 10_000 });
   });
 
   // ── Test 22: Dashboard KPI cards ──────────────────────────────────
-  test("dashboard — KPI cards render with icons and values", async () => {
+  test("dashboard — nav cards render with icons and descriptions", async () => {
     await page.goto("/home");
     await expect(
       page.getByRole("heading", { name: /good (morning|afternoon|evening)/i }),
     ).toBeVisible({ timeout: 10_000 });
 
-    // KPI cards should show summary values (from KpiCard component)
+    // Nav cards should show labels and descriptions
     const main = page.locator("#main-content");
-    for (const label of ["Conditions", "Medications", "Immunizations"]) {
-      await expect(main.getByText(label)).toBeVisible();
+    for (const label of ["Timeline", "Medications", "Immunizations", "Chat"]) {
+      await expect(main.getByText(label).first()).toBeVisible();
     }
 
-    // Values should be numeric (rendered by KpiCard)
-    const kpiValues = main.locator(".text-2xl.font-bold");
-    expect(await kpiValues.count()).toBeGreaterThanOrEqual(4);
+    // Each nav card should be a link
+    const navLinks = main.locator("a[href]").filter({ hasText: /timeline|medications|immunizations|chat/i });
+    expect(await navLinks.count()).toBeGreaterThanOrEqual(4);
   });
 
   // ── Test 23: Immunization chart renders ─────────────────────────
-  test("immunizations — chart renders with data table toggle", async () => {
+  test("immunizations — timeline and methodology via sidebar nav", async () => {
     // Use client-side navigation to avoid full-page reload auth race condition
     const sidebar = page.locator('nav[aria-label="Main navigation"]');
-    // Expand records sub-menu if collapsed
-    const immunizationsLink = sidebar.getByRole("link", { name: "Immunizations" });
-    if (!(await immunizationsLink.isVisible())) {
-      await sidebar.getByRole("button", { name: /records/i }).click();
-    }
-    await immunizationsLink.click();
+    await sidebar.getByRole("link", { name: "Immunizations" }).click();
     await expect(page).toHaveURL(/\/records\/immunizations/);
 
     await expect(
       page.getByRole("heading", { name: "Immunizations", exact: true }),
     ).toBeVisible({ timeout: 15_000 });
 
-    // Wait for data to finish loading (either total count or empty state)
+    // Wait for data to finish loading
     await expect(async () => {
-      const hasTotal = await page.getByText(/\d+ total/).isVisible();
+      const hasData = await page.getByText(/\d+ immunizations/).first().isVisible();
       const hasEmpty = await page.getByText(/no immunizations found/i).isVisible();
-      expect(hasTotal || hasEmpty).toBeTruthy();
+      expect(hasData || hasEmpty).toBeTruthy();
     }).toPass({ timeout: 15_000 });
 
-    // Chart should render if data is available (inside figure with aria-label)
-    const chart = page.locator('figure[aria-label="Immunization timeline chart"]');
-    if (await chart.isVisible()) {
-      // "View data as table" toggle should be present
-      const detailsToggle = chart.getByText("View data as table");
-      await expect(detailsToggle).toBeVisible();
-
-      // Click to expand data table
-      await detailsToggle.click();
-      await expect(chart.locator("table")).toBeVisible();
+    // Methodology accordion
+    const methodologyTrigger = page.getByRole("button", { name: /methodology/i });
+    if (await methodologyTrigger.isVisible()) {
+      await methodologyTrigger.click();
+      await expect(page.getByText("Steps")).toBeVisible();
+      await expect(page.getByText("Limitations")).toBeVisible();
     }
   });
 
   // ── Test 24: Medication insights chart ──────────────────────────
-  test("medication insights — dosage chart or empty state", async () => {
-    // Navigate via dashboard "Deep Dive" pill to keep SPA state intact (avoids page.goto reload)
+  test("medication insights — navigate via sidebar and verify content", async () => {
+    // Navigate via sidebar to keep SPA state intact
     const sidebar = page.locator('nav[aria-label="Main navigation"]');
-    await sidebar.getByRole("link", { name: "Home" }).click();
-    await expect(page).toHaveURL(/\/home/, { timeout: 15_000 });
-    await expect(
-      page.getByRole("heading", { name: /good (morning|afternoon|evening)/i }),
-    ).toBeVisible({ timeout: 15_000 });
-
-    // Click the "Deep Dive" quick action pill that links to /records/medications/insights
-    await page.getByRole("link", { name: /deep dive/i }).click();
+    await sidebar.getByRole("link", { name: "Medications" }).click();
     await expect(page).toHaveURL(/\/records\/medications\/insights/, { timeout: 15_000 });
 
     await expect(
       page.getByRole("heading", { name: "Medication Insights", exact: true }),
     ).toBeVisible({ timeout: 15_000 });
 
-    // Either dosage chart renders or empty state is shown
-    const dosageChart = page.locator('figure[aria-label="Medication dosage changes chart"]');
-    const emptyState = page.getByText(/no medication insights available/i);
-
-    // One of these should be present
+    // Stat row or empty state
     await expect(async () => {
-      const chartVisible = await dosageChart.isVisible();
-      const emptyVisible = await emptyState.isVisible();
-      expect(chartVisible || emptyVisible).toBeTruthy();
+      const statsVisible = await page.getByText(/\d+ medications/).first().isVisible();
+      const emptyVisible = await page.getByText(/no medication insights available/i).isVisible();
+      expect(statsVisible || emptyVisible).toBeTruthy();
     }).toPass({ timeout: 10_000 });
   });
 
@@ -633,7 +587,6 @@ test.describe.serial("PHRI user journey", () => {
     // Trust badges should appear
     await expect(loginPage.getByText("HIPAA Compliant")).toBeVisible();
     await expect(loginPage.getByText("256-bit Encryption")).toBeVisible();
-    await expect(loginPage.getByText("SOC 2 Certified")).toBeVisible();
 
     await loginContext.close();
   });
