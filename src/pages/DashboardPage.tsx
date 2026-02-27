@@ -11,7 +11,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DataProvenance } from "@/components/shared/DataProvenance";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { DEMO_MEDICATION_INSIGHTS } from "@/lib/sandboxMedications";
 import type {
   DashboardResponse,
   MedicationInsightsResponse,
@@ -89,11 +88,7 @@ export function DashboardPage() {
     ])
       .then(([dash, meds, immun]) => {
         setData(dash);
-
-        // Fall back to demo data when API has no real medications or fails
-        const hasRealMeds = meds && meds.insights.summary.totalUnique > 0;
-        setMedInsights(hasRealMeds ? meds : DEMO_MEDICATION_INSIGHTS);
-
+        setMedInsights(meds);
         setImmunInsights(immun);
       })
       .catch((err) => toast.error(err.message))

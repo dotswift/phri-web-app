@@ -28,31 +28,17 @@ import {
 import { MedicationChangeSparkline } from "@/components/charts/MedicationChangeSparkline";
 import { useResourceDetail } from "@/context/ResourceDetailContext";
 import type { MedicationInsightsResponse } from "@/types/api";
-import { DEMO_MEDICATION_INSIGHTS } from "@/lib/sandboxMedications";
 
 export function MedicationInsightsPage() {
   const { openResourceDetail } = useResourceDetail();
   const [data, setData] = useState<MedicationInsightsResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [usingDemo, setUsingDemo] = useState(false);
 
   useEffect(() => {
     api
       .get<MedicationInsightsResponse>("/api/medications/insights")
-      .then((result) => {
-        // Fall back to demo when there are no real medication resources
-        if (result.insights.summary.totalUnique === 0) {
-          setData(DEMO_MEDICATION_INSIGHTS);
-          setUsingDemo(true);
-        } else {
-          setData(result);
-        }
-      })
-      .catch(() => {
-        // API failed — still show demo data so the page is never empty
-        setData(DEMO_MEDICATION_INSIGHTS);
-        setUsingDemo(true);
-      })
+      .then(setData)
+      .catch((err) => toast.error(err.message))
       .finally(() => setLoading(false));
   }, []);
 
@@ -79,16 +65,6 @@ export function MedicationInsightsPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Medication Insights</h1>
-
-      {usingDemo && (
-        <div className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
-          <Info className="h-4 w-4 shrink-0" />
-          <span>
-            Showing demo medication data — this sandbox persona has no real
-            medication records.
-          </span>
-        </div>
-      )}
 
       {/* Compact stat row */}
       <p className="text-sm text-muted-foreground">
@@ -197,8 +173,8 @@ export function MedicationInsightsPage() {
                       {group.occurrences.map((occ) => (
                         <div
                           key={occ.id}
-                          className={`flex items-center justify-between rounded p-2 ${usingDemo ? "" : "cursor-pointer hover:bg-accent"}`}
-                          onClick={usingDemo ? undefined : () => openResourceDetail(occ.id, "/api/medications")}
+                          className={`flex items-center justify-between rounded p-2 ${"cursor-pointer hover:bg-accent"}`}
+                          onClick={() => openResourceDetail(occ.id, "/api/medications")}
                         >
                           <div>
                             {occ.dosage && (
@@ -257,8 +233,8 @@ export function MedicationInsightsPage() {
                         {group.history.map((entry) => (
                           <div
                             key={entry.id + entry.date}
-                            className={`relative mb-4 last:mb-0 ${usingDemo ? "" : "cursor-pointer"}`}
-                            onClick={usingDemo ? undefined : () => openResourceDetail(entry.id, "/api/medications")}
+                            className={"relative mb-4 cursor-pointer last:mb-0"}
+                            onClick={() => openResourceDetail(entry.id, "/api/medications")}
                           >
                             <div className="absolute -left-[1.35rem] top-1 h-3 w-3 rounded-full border-2 border-primary bg-background" />
                             <div className="rounded p-2 hover:bg-accent">

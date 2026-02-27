@@ -17,7 +17,6 @@ import { toast } from "sonner";
 import { Pill } from "lucide-react";
 import { useResourceDetail } from "@/context/ResourceDetailContext";
 import type { MedicationsResponse, MedicationItem } from "@/types/api";
-import { DEMO_MEDICATIONS } from "@/lib/sandboxMedications";
 
 export function MedicationsPage() {
   const [data, setData] = useState<MedicationsResponse | null>(null);
@@ -25,7 +24,6 @@ export function MedicationsPage() {
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [apiEmpty, setApiEmpty] = useState(false);
   const { openResourceDetail } = useResourceDetail();
 
   useEffect(() => {
@@ -43,9 +41,6 @@ export function MedicationsPage() {
       const result = await api.get<MedicationsResponse>(
         `/api/medications?${params.toString()}`,
       );
-      const empty =
-        result.active.length === 0 && result.other.length === 0;
-      setApiEmpty(empty);
       setData(result);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to load medications");
@@ -58,15 +53,10 @@ export function MedicationsPage() {
     fetchMeds();
   }, [fetchMeds]);
 
-  // Auto-use demo data when API returns empty
-  const showDemo = apiEmpty;
-  const displayData = showDemo
-    ? filterDemoMedications(DEMO_MEDICATIONS, status, debouncedSearch)
-    : data;
   const isEmpty =
-    displayData &&
-    displayData.active.length === 0 &&
-    displayData.other.length === 0;
+    data &&
+    data.active.length === 0 &&
+    data.other.length === 0;
 
   return (
     <div className="space-y-4">
@@ -98,16 +88,6 @@ export function MedicationsPage() {
         </div>
       </div>
 
-      {showDemo && (
-        <div className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
-          <Pill className="h-4 w-4 shrink-0" />
-          <span>
-            Showing demo medication data — this sandbox persona has no real
-            medication records.
-          </span>
-        </div>
-      )}
-
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 3 }).map((_, i) => (
@@ -124,18 +104,18 @@ export function MedicationsPage() {
         </div>
       ) : (
         <>
-          {displayData!.active.length > 0 && (
+          {data!.active.length > 0 && (
             <MedicationSection
               title="Active Medications"
-              items={displayData!.active}
-              onSelect={showDemo ? undefined : (id) => openResourceDetail(id, "/api/medications")}
+              items={data!.active}
+              onSelect={(id) => openResourceDetail(id, "/api/medications")}
             />
           )}
-          {displayData!.other.length > 0 && (
+          {data!.other.length > 0 && (
             <MedicationSection
               title="Other Medications"
-              items={displayData!.other}
-              onSelect={showDemo ? undefined : (id) => openResourceDetail(id, "/api/medications")}
+              items={data!.other}
+              onSelect={(id) => openResourceDetail(id, "/api/medications")}
             />
           )}
         </>
@@ -145,25 +125,6 @@ export function MedicationsPage() {
   );
 }
 
-function filterDemoMedications(
-  demo: MedicationsResponse,
-  status: string,
-  search: string,
-): MedicationsResponse {
-  const matchesSearch = (med: MedicationItem) =>
-    !search ||
-    (med.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
-    (med.dosage ?? "").toLowerCase().includes(search.toLowerCase());
-
-  const matchesStatus = (med: MedicationItem) =>
-    status === "all" || med.status === status;
-
-  const filter = (items: MedicationItem[]) =>
-    items.filter((m) => matchesSearch(m) && matchesStatus(m));
-
-  return { active: filter(demo.active), other: filter(demo.other) };
-}
-
 function MedicationSection({
   title,
   items,
@@ -171,7 +132,7 @@ function MedicationSection({
 }: {
   title: string;
   items: MedicationItem[];
-  onSelect?: (id: string) => void;
+  onSelect: (id: string) => void;
 }) {
   return (
     <Card>
@@ -182,8 +143,8 @@ function MedicationSection({
         {items.map((med) => (
           <div
             key={med.id}
-            className={`flex items-center justify-between rounded-md p-2 transition-colors ${onSelect ? "cursor-pointer hover:bg-accent" : ""}`}
-            onClick={onSelect ? () => onSelect(med.id) : undefined}
+            className="flex items-center justify-between rounded-md p-2 transition-colors cursor-pointer hover:bg-accent"
+            onClick={() => onSelect(med.id)}
           >
             <div>
               <p className="text-sm font-medium">{med.name ?? "Unknown"}</p>
