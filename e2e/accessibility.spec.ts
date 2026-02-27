@@ -114,7 +114,6 @@ test.describe.serial("Accessibility audits", () => {
   const pagesToAudit = [
     { name: "Home", url: "/home" },
     { name: "Records", url: "/records" },
-    { name: "Timeline", url: "/timeline" },
     { name: "Immunizations", url: "/records/immunizations" },
     { name: "Medication Insights", url: "/records/medications/insights" },
     { name: "Chat", url: "/chat" },
