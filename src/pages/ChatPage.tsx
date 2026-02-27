@@ -147,7 +147,7 @@ export function ChatPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-theme(spacing.16))] md:h-[calc(100vh-theme(spacing.12))]">
+    <div className="flex h-[calc(100vh-6rem)] md:h-[calc(100vh-3rem)] overflow-hidden">
       <h1 className="sr-only">Chat</h1>
 
       {/* Screen reader streaming status */}
@@ -203,8 +203,8 @@ export function ChatPage() {
       </div>
 
       {/* Chat main area */}
-      <div className="flex flex-1 flex-col">
-        <ScrollArea className="flex-1 p-4">
+      <div className="flex flex-1 flex-col min-h-0">
+        <ScrollArea className="flex-1 min-h-0 p-4">
           <div role="log" aria-live="off" className="space-y-4">
             {messages.length === 0 && !crisisDetected && (
               <div className="flex flex-col items-center justify-center gap-6 pt-12 text-center">
