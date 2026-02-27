@@ -1,7 +1,9 @@
 import { supabase } from "./supabase";
 import type { ChatSSEEvent } from "../types/api";
 
-const API_URL = import.meta.env.VITE_API_URL;
+// Use relative URLs so requests go through the proxy layer
+// (Vite dev proxy locally, Vercel rewrites in production) — avoids CORS.
+const API_URL = "";
 
 export type { ChatSSEEvent };
 

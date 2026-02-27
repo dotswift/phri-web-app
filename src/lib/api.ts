@@ -1,8 +1,8 @@
 import { supabase } from "./supabase";
 
-// In dev, use relative URLs so requests go through the Vite proxy (avoids CORS).
-// In production, use the full API URL.
-const API_URL = import.meta.env.DEV ? "" : import.meta.env.VITE_API_URL;
+// Always use relative URLs so requests go through the proxy layer
+// (Vite dev proxy locally, Vercel rewrites in production) — avoids CORS.
+const API_URL = "";
 
 async function getToken(): Promise<string> {
   const {
