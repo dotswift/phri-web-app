@@ -91,13 +91,13 @@ export function TimelineList({
   if (items.length === 0) return null;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {groups.map((group) => (
         <section key={group.key}>
-          <h3 className="sticky top-0 z-10 mb-1 bg-background/80 py-1 text-sm font-semibold text-muted-foreground backdrop-blur-sm">
+          <h3 className="sticky top-0 z-10 mb-0.5 bg-background/80 py-1 text-sm font-semibold text-muted-foreground backdrop-blur-sm">
             {group.label}
           </h3>
-          <AnimatedList className="space-y-1.5">
+          <AnimatedList className="space-y-1">
             {group.items.map((item) => (
               <TimelineItemCard key={item.id} item={item} />
             ))}

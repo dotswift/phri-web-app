@@ -25,7 +25,7 @@ export function TimelineItemCard({ item }: { item: TimelineItem }) {
         openResourceDetail(item.id, endpointForResourceType(item.resourceType))
       }
     >
-      <CardContent className="flex items-start gap-2 p-2">
+      <CardContent className="flex items-start gap-1.5 px-2 py-1.5">
         {/* Date block */}
         <div className="flex w-8 shrink-0 flex-col items-center pt-0.5 text-center">
           {date ? (
@@ -54,10 +54,12 @@ export function TimelineItemCard({ item }: { item: TimelineItem }) {
               <ResourceTypeBadge resourceType={item.resourceType} />
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-              {item.source}
-            </p>
+          <div className="flex items-center gap-1">
+            {item.source && (
+              <p className="min-w-0 flex-1 truncate text-[11px] text-muted-foreground/70">
+                {item.source}
+              </p>
+            )}
             {/* Mobile: only resource type badge */}
             <div className="flex shrink-0 sm:hidden">
               <ResourceTypeBadge resourceType={item.resourceType} />

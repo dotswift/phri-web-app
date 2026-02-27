@@ -7,8 +7,7 @@ export type SortOption = "date-desc" | "date-asc" | "type" | "name-asc";
 
 export interface TimelineFilters {
   resourceTypes: Set<string>;
-  dateFrom: Date | null;
-  dateTo: Date | null;
+  years: Set<number>;
   sortBy: SortOption;
 }
 
@@ -16,7 +15,7 @@ export interface TimelineData {
   allItems: TimelineItem[];
   filteredItems: TimelineItem[];
   loading: boolean;
-  dateExtent: [Date, Date] | null;
+  availableYears: number[];
   resourceTypeCounts: Map<string, number>;
 }
 
@@ -85,18 +84,14 @@ export function useTimelineData(filters: TimelineFilters): TimelineData {
     return counts;
   }, [allItems]);
 
-  const dateExtent = useMemo<[Date, Date] | null>(() => {
-    let min = Infinity;
-    let max = -Infinity;
+  const availableYears = useMemo(() => {
+    const years = new Set<number>();
     for (const item of allItems) {
       if (item.dateRecorded) {
-        const t = new Date(item.dateRecorded).getTime();
-        if (t < min) min = t;
-        if (t > max) max = t;
+        years.add(new Date(item.dateRecorded).getFullYear());
       }
     }
-    if (min === Infinity) return null;
-    return [new Date(min), new Date(max)];
+    return [...years].sort((a, b) => b - a);
   }, [allItems]);
 
   const filteredItems = useMemo(() => {
@@ -108,18 +103,15 @@ export function useTimelineData(filters: TimelineFilters): TimelineData {
       );
     }
 
-    if (filters.dateFrom || filters.dateTo) {
-      const from = filters.dateFrom?.getTime() ?? -Infinity;
-      const to = filters.dateTo?.getTime() ?? Infinity;
+    if (filters.years.size > 0) {
       items = items.filter((item) => {
         if (!item.dateRecorded) return false;
-        const t = new Date(item.dateRecorded).getTime();
-        return t >= from && t <= to;
+        return filters.years.has(new Date(item.dateRecorded).getFullYear());
       });
     }
 
     return items;
-  }, [allItems, filters.resourceTypes, filters.dateFrom, filters.dateTo]);
+  }, [allItems, filters.resourceTypes, filters.years]);
 
   const sortedItems = useMemo(() => {
     const items = [...filteredItems];
@@ -163,7 +155,7 @@ export function useTimelineData(filters: TimelineFilters): TimelineData {
     allItems,
     filteredItems: sortedItems,
     loading,
-    dateExtent,
+    availableYears,
     resourceTypeCounts,
   };
 }

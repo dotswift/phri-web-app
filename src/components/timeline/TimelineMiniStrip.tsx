@@ -1,225 +1,143 @@
-import { useMemo, useCallback } from "react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import {
-  getYear,
-  startOfYear,
-  endOfYear,
-  startOfQuarter,
-  endOfQuarter,
-  getQuarter,
-} from "date-fns";
-import { ChartAccessibility } from "@/components/charts/ChartAccessibility";
+import { useMemo } from "react";
+import { format } from "date-fns";
 import { FHIR_RESOURCE_COLORS } from "@/lib/colors";
 import type { TimelineItem } from "@/types/api";
 
 const DEFAULT_COLOR = "oklch(0.55 0.02 260)";
+const STRIP_HEIGHT = 48;
+const BUCKET_COUNT = 25;
+const BAR_WIDTH = 10;
+const BAR_GAP = 2;
 
-interface BucketData {
-  label: string;
-  from: Date;
-  to: Date;
+interface Slice {
+  from: number;
+  to: number;
+  segments: { type: string; count: number }[];
   total: number;
-  [type: string]: string | number | Date;
 }
 
-export function TimelineMiniStrip({
+export function TimelineDensityStrip({
   items,
-  onDateRangeSelect,
 }: {
   items: TimelineItem[];
-  onDateRangeSelect?: (from: Date | null, to: Date | null) => void;
 }) {
   const datedItems = useMemo(
     () => items.filter((i) => i.dateRecorded),
     [items],
   );
 
-  const resourceTypes = useMemo(() => {
-    const types = new Set<string>();
-    for (const item of datedItems) types.add(item.resourceType);
-    return [...types].sort();
+  const extent = useMemo(() => {
+    if (datedItems.length === 0) return null;
+    const times = datedItems.map((i) => new Date(i.dateRecorded!).getTime());
+    const min = Math.min(...times);
+    const max = Math.max(...times);
+    return { min, max, range: max - min };
   }, [datedItems]);
 
-  const { buckets, useQuarters } = useMemo(() => {
-    if (datedItems.length === 0) return { buckets: [], useQuarters: false };
+  const slices = useMemo((): Slice[] => {
+    if (!extent || extent.range < 86_400_000) return [];
 
-    const times = datedItems.map((i) => new Date(i.dateRecorded!));
-    const minYear = getYear(
-      times.reduce((a, b) => (a < b ? a : b)),
+    const { min, range } = extent;
+    const sliceWidth = range / BUCKET_COUNT;
+
+    // Initialize buckets
+    const buckets: Map<string, number>[] = Array.from(
+      { length: BUCKET_COUNT },
+      () => new Map(),
     );
-    const maxYear = getYear(
-      times.reduce((a, b) => (a > b ? a : b)),
-    );
-    const yearSpan = maxYear - minYear + 1;
-    const useQ = yearSpan <= 3;
+    const totals = new Array(BUCKET_COUNT).fill(0) as number[];
 
-    const bucketMap = new Map<string, BucketData>();
-
-    if (useQ) {
-      // Quarter buckets
-      for (let y = minYear; y <= maxYear; y++) {
-        for (let q = 1; q <= 4; q++) {
-          const d = new Date(y, (q - 1) * 3, 1);
-          const key = `Q${q} ${y}`;
-          const bucket: BucketData = {
-            label: key,
-            from: startOfQuarter(d),
-            to: endOfQuarter(d),
-            total: 0,
-          };
-          bucketMap.set(key, bucket);
-        }
-      }
-
-      for (const item of datedItems) {
-        const d = new Date(item.dateRecorded!);
-        const key = `Q${getQuarter(d)} ${getYear(d)}`;
-        const bucket = bucketMap.get(key);
-        if (bucket) {
-          bucket.total++;
-          bucket[item.resourceType] =
-            ((bucket[item.resourceType] as number) || 0) + 1;
-        }
-      }
-    } else {
-      // Year buckets
-      for (let y = minYear; y <= maxYear; y++) {
-        const d = new Date(y, 0, 1);
-        const key = String(y);
-        const bucket: BucketData = {
-          label: key,
-          from: startOfYear(d),
-          to: endOfYear(d),
-          total: 0,
-        };
-        bucketMap.set(key, bucket);
-      }
-
-      for (const item of datedItems) {
-        const d = new Date(item.dateRecorded!);
-        const key = String(getYear(d));
-        const bucket = bucketMap.get(key);
-        if (bucket) {
-          bucket.total++;
-          bucket[item.resourceType] =
-            ((bucket[item.resourceType] as number) || 0) + 1;
-        }
-      }
+    for (const item of datedItems) {
+      const t = new Date(item.dateRecorded!).getTime();
+      let idx = Math.floor((t - min) / sliceWidth);
+      if (idx >= BUCKET_COUNT) idx = BUCKET_COUNT - 1;
+      const map = buckets[idx];
+      map.set(item.resourceType, (map.get(item.resourceType) ?? 0) + 1);
+      totals[idx]++;
     }
 
-    // Filter out empty buckets
-    const result = [...bucketMap.values()].filter((b) => b.total > 0);
-    return { buckets: result, useQuarters: useQ };
-  }, [datedItems]);
-
-  const handleBarClick = useCallback(
-    (data: BucketData) => {
-      if (onDateRangeSelect && data) {
-        onDateRangeSelect(data.from, data.to);
+    return buckets.map((map, i) => {
+      const segments: { type: string; count: number }[] = [];
+      for (const [type, count] of [...map.entries()].sort((a, b) =>
+        a[0].localeCompare(b[0]),
+      )) {
+        segments.push({ type, count });
       }
-    },
-    [onDateRangeSelect],
-  );
+      return {
+        from: min + i * sliceWidth,
+        to: min + (i + 1) * sliceWidth,
+        segments,
+        total: totals[i],
+      };
+    });
+  }, [datedItems, extent]);
 
-  if (datedItems.length === 0 || buckets.length === 0) return null;
+  // Single-day edge case
+  if (datedItems.length === 0) return null;
 
-  const insight = `Timeline density showing ${datedItems.length} events across ${buckets.length} ${useQuarters ? "quarters" : "years"}.`;
-
-  return (
-    <ChartAccessibility label="Timeline density chart" insight={insight}>
-      <p className="mb-2 text-center text-xs text-muted-foreground">
-        Tap a bar to filter by that period
+  if (!extent || extent.range < 86_400_000) {
+    const dateStr = datedItems[0].dateRecorded
+      ? format(new Date(datedItems[0].dateRecorded), "MMMM d, yyyy")
+      : "unknown date";
+    return (
+      <p className="py-1 text-center text-xs text-muted-foreground">
+        All {datedItems.length} events on {dateStr}
       </p>
-      <ResponsiveContainer width="100%" height={220}>
-        <BarChart
-          data={buckets}
-          margin={{ left: -10, right: 10, top: 5, bottom: 5 }}
-        >
-          <XAxis
-            dataKey="label"
-            tick={{ fontSize: 10 }}
-            interval={0}
-            angle={useQuarters ? -45 : 0}
-            textAnchor={useQuarters ? "end" : "middle"}
-            height={useQuarters ? 45 : 25}
-          />
-          <YAxis tick={{ fontSize: 10 }} width={30} allowDecimals={false} />
-          <Tooltip
-            content={<DensityTooltip resourceTypes={resourceTypes} />}
-          />
-          {resourceTypes.map((type) => (
-            <Bar
-              key={type}
-              dataKey={type}
-              stackId="stack"
-              fill={FHIR_RESOURCE_COLORS[type]?.badge ?? DEFAULT_COLOR}
-              cursor="pointer"
-              onClick={(data: { payload?: BucketData }) => {
-                if (data?.payload) handleBarClick(data.payload);
-              }}
-            />
-          ))}
-        </BarChart>
-      </ResponsiveContainer>
-      {/* Legend */}
-      <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1">
-        {resourceTypes.map((type) => (
-          <div key={type} className="flex items-center gap-1">
-            <span
-              className="inline-block h-2.5 w-2.5 rounded-full"
-              style={{
-                backgroundColor:
-                  FHIR_RESOURCE_COLORS[type]?.badge ?? DEFAULT_COLOR,
-              }}
-            />
-            <span className="text-[10px] text-muted-foreground">{type}</span>
-          </div>
-        ))}
-      </div>
-    </ChartAccessibility>
-  );
-}
+    );
+  }
 
-function DensityTooltip({
-  active,
-  payload,
-  label,
-  resourceTypes,
-}: {
-  active?: boolean;
-  payload?: Array<{ dataKey: string; value: number; color: string }>;
-  label?: string;
-  resourceTypes: string[];
-}) {
-  if (!active || !payload?.length) return null;
-
-  const total = payload.reduce((sum, p) => sum + (p.value || 0), 0);
+  const maxTotal = Math.max(...slices.map((s) => s.total), 1);
+  const svgWidth = BUCKET_COUNT * (BAR_WIDTH + BAR_GAP) - BAR_GAP;
 
   return (
-    <div className="rounded border bg-popover p-2 text-xs shadow-md">
-      <p className="mb-1 font-medium">{label}</p>
-      {resourceTypes.map((type) => {
-        const entry = payload.find((p) => p.dataKey === type);
-        if (!entry || !entry.value) return null;
-        return (
-          <div key={type} className="flex items-center gap-1.5">
-            <span
-              className="inline-block h-2 w-2 rounded-full"
-              style={{ backgroundColor: entry.color }}
-            />
-            <span className="text-muted-foreground">{type}</span>
-            <span className="ml-auto font-medium">{entry.value}</span>
-          </div>
-        );
-      })}
-      <div className="mt-1 border-t pt-1 font-medium">Total: {total}</div>
+    <div>
+      <svg
+        viewBox={`0 0 ${svgWidth} ${STRIP_HEIGHT}`}
+        className="w-full"
+        style={{ height: STRIP_HEIGHT }}
+        role="img"
+        aria-label={`Timeline density showing ${datedItems.length} events`}
+      >
+        {slices.map((slice, i) => {
+          const barHeight = (slice.total / maxTotal) * (STRIP_HEIGHT - 4);
+          const x = i * (BAR_WIDTH + BAR_GAP);
+
+          // Stack segments bottom-up
+          let yOffset = STRIP_HEIGHT - 2;
+          const rects: React.ReactNode[] = [];
+          for (const seg of slice.segments) {
+            const segHeight = (seg.count / slice.total) * barHeight;
+            yOffset -= segHeight;
+            rects.push(
+              <rect
+                key={seg.type}
+                x={x}
+                y={yOffset}
+                width={BAR_WIDTH}
+                height={segHeight}
+                rx={1.5}
+                fill={
+                  FHIR_RESOURCE_COLORS[seg.type]?.badge ?? DEFAULT_COLOR
+                }
+              />,
+            );
+          }
+
+          return (
+            <g key={i} className="opacity-80">
+              {rects}
+            </g>
+          );
+        })}
+      </svg>
+      <div className="flex justify-between px-0.5">
+        <span className="text-[10px] text-muted-foreground">
+          {format(new Date(extent.min), "MMM yyyy")}
+        </span>
+        <span className="text-[10px] text-muted-foreground">
+          {format(new Date(extent.max), "MMM yyyy")}
+        </span>
+      </div>
     </div>
   );
 }

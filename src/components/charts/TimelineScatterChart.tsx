@@ -6,7 +6,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Brush,
   ResponsiveContainer,
 } from "recharts";
 import { ChartAccessibility } from "./ChartAccessibility";
@@ -40,10 +39,8 @@ function jitterFor(id: string): number {
 
 export function TimelineScatterChart({
   items,
-  onBrushChange,
 }: {
   items: TimelineItem[];
-  onBrushChange?: (from: Date | null, to: Date | null) => void;
 }) {
   const { openResourceDetail } = useResourceDetail();
 
@@ -84,13 +81,6 @@ export function TimelineScatterChart({
     return byType;
   }, [datedItems, laneTypes]);
 
-  // All dots for Brush data reference
-  const allDots = useMemo(() => {
-    const dots: ChartDot[] = [];
-    for (const arr of datasets.values()) dots.push(...arr);
-    return dots.sort((a, b) => a.x - b.x);
-  }, [datasets]);
-
   const handleDotClick = useCallback(
     (dot: ChartDot) => {
       openResourceDetail(dot.id, endpointForResourceType(dot.resourceType));
@@ -98,26 +88,14 @@ export function TimelineScatterChart({
     [openResourceDetail],
   );
 
-  const handleBrushChange = useCallback(
-    (brush: { startIndex?: number; endIndex?: number }) => {
-      if (!onBrushChange || !allDots.length) return;
-      if (
-        brush.startIndex === 0 &&
-        brush.endIndex === allDots.length - 1
-      ) {
-        onBrushChange(null, null);
-        return;
-      }
-      const start = allDots[brush.startIndex ?? 0];
-      const end = allDots[brush.endIndex ?? allDots.length - 1];
-      if (start && end) {
-        onBrushChange(new Date(start.x), new Date(end.x));
-      }
-    },
-    [onBrushChange, allDots],
-  );
+  // Don't render when no data or when all items fall on the same day
+  const timeRange = useMemo(() => {
+    if (datedItems.length < 2) return 0;
+    const times = datedItems.map((i) => new Date(i.dateRecorded!).getTime());
+    return Math.max(...times) - Math.min(...times);
+  }, [datedItems]);
 
-  if (datedItems.length === 0) return null;
+  if (datedItems.length === 0 || timeRange < 86_400_000) return null;
 
   const insight = `Timeline scatter chart showing ${datedItems.length} events across ${laneTypes.length} resource types.`;
 
@@ -171,18 +149,6 @@ export function TimelineScatterChart({
               />
             );
           })}
-          <Brush
-            dataKey="x"
-            height={24}
-            stroke="oklch(0.6 0.02 260)"
-            tickFormatter={(ts: number) =>
-              new Date(ts).toLocaleDateString("en-US", {
-                month: "short",
-                year: "2-digit",
-              })
-            }
-            onChange={handleBrushChange}
-          />
         </ScatterChart>
       </ResponsiveContainer>
     </ChartAccessibility>
