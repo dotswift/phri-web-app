@@ -13,10 +13,14 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { CitationBadge } from "@/components/shared/CitationBadge";
 import { DetailDrawer } from "@/components/shared/DetailDrawer";
-import { EmptyState } from "@/components/shared/EmptyState";
+import {
+  SandboxActivationCard,
+  SandboxActiveBanner,
+} from "@/components/shared/SandboxBanner";
+import { useSandboxDemo } from "@/context/SandboxContext";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { Pill, Info } from "lucide-react";
+import { Pill } from "lucide-react";
 import type { MedicationsResponse, MedicationItem } from "@/types/api";
 import { DEMO_MEDICATIONS } from "@/lib/sandboxMedications";
 
@@ -27,7 +31,8 @@ export function MedicationsPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [isDemoData, setIsDemoData] = useState(false);
+  const [apiEmpty, setApiEmpty] = useState(false);
+  const { sandboxDemoActive } = useSandboxDemo();
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
@@ -44,15 +49,10 @@ export function MedicationsPage() {
       const result = await api.get<MedicationsResponse>(
         `/api/medications?${params.toString()}`,
       );
-      const apiEmpty =
+      const empty =
         result.active.length === 0 && result.other.length === 0;
-      if (apiEmpty) {
-        setIsDemoData(true);
-        setData(filterDemoMedications(DEMO_MEDICATIONS, status, debouncedSearch));
-      } else {
-        setIsDemoData(false);
-        setData(result);
-      }
+      setApiEmpty(empty);
+      setData(result);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to load medications");
     } finally {
@@ -64,8 +64,15 @@ export function MedicationsPage() {
     fetchMeds();
   }, [fetchMeds]);
 
+  // Use demo data when API is empty and user has opted in
+  const showDemo = apiEmpty && sandboxDemoActive;
+  const displayData = showDemo
+    ? filterDemoMedications(DEMO_MEDICATIONS, status, debouncedSearch)
+    : data;
   const isEmpty =
-    data && data.active.length === 0 && data.other.length === 0;
+    displayData &&
+    displayData.active.length === 0 &&
+    displayData.other.length === 0;
 
   return (
     <div className="space-y-4">
@@ -97,12 +104,7 @@ export function MedicationsPage() {
         </div>
       </div>
 
-      {isDemoData && (
-        <div className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
-          <Info className="h-4 w-4 shrink-0" />
-          Showing demo medications — this sandbox persona has no medication records.
-        </div>
-      )}
+      {showDemo && <SandboxActiveBanner />}
 
       {loading ? (
         <div className="space-y-3">
@@ -110,26 +112,30 @@ export function MedicationsPage() {
             <Skeleton key={i} className="h-16" />
           ))}
         </div>
+      ) : apiEmpty && !sandboxDemoActive ? (
+        <SandboxActivationCard />
       ) : isEmpty ? (
-        <EmptyState
-          icon={Pill}
-          title="No medications found"
-          description="This sandbox persona has no medication records. In a real deployment, MedicationRequest resources from provider networks would appear here."
-        />
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <Pill className="h-12 w-12 text-muted-foreground/50" />
+          <h3 className="mt-4 text-lg font-medium">No medications found</h3>
+          <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+            No medications match the current filters.
+          </p>
+        </div>
       ) : (
         <>
-          {data!.active.length > 0 && (
+          {displayData!.active.length > 0 && (
             <MedicationSection
               title="Active Medications"
-              items={data!.active}
-              onSelect={isDemoData ? undefined : setSelectedId}
+              items={displayData!.active}
+              onSelect={showDemo ? undefined : setSelectedId}
             />
           )}
-          {data!.other.length > 0 && (
+          {displayData!.other.length > 0 && (
             <MedicationSection
               title="Other Medications"
-              items={data!.other}
-              onSelect={isDemoData ? undefined : setSelectedId}
+              items={displayData!.other}
+              onSelect={showDemo ? undefined : setSelectedId}
             />
           )}
         </>

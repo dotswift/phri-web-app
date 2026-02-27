@@ -2,6 +2,7 @@ import { BrowserRouter } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { LazyMotion, domAnimation } from "motion/react";
 import { AuthProvider } from "./context/AuthContext";
+import { SandboxProvider } from "./context/SandboxContext";
 import { AppRouter } from "./router";
 import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
@@ -12,10 +13,12 @@ export default function App() {
       <LazyMotion features={domAnimation}>
         <BrowserRouter>
           <AuthProvider>
-            <ErrorBoundary>
-              <AppRouter />
-            </ErrorBoundary>
-            <Toaster />
+            <SandboxProvider>
+              <ErrorBoundary>
+                <AppRouter />
+              </ErrorBoundary>
+              <Toaster />
+            </SandboxProvider>
           </AuthProvider>
         </BrowserRouter>
       </LazyMotion>

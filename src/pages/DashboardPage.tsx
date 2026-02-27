@@ -17,6 +17,11 @@ import { AnimatedList } from "@/components/shared/AnimatedList";
 import { FHIR_RESOURCE_COLORS } from "@/lib/colors";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
+import { useSandboxDemo } from "@/context/SandboxContext";
+import {
+  SandboxActivationCard,
+  SandboxActiveBanner,
+} from "@/components/shared/SandboxBanner";
 import type { DashboardResponse } from "@/types/api";
 import {
   Clock,
@@ -113,6 +118,7 @@ const QUICK_ACTIONS = [
 export function DashboardPage() {
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const { sandboxDemoActive } = useSandboxDemo();
 
   useEffect(() => {
     api
@@ -166,6 +172,14 @@ export function DashboardPage() {
           );
         })}
       </AnimatedList>
+
+      {/* Sandbox demo prompt for empty medications */}
+      {data.summary.medications === 0 &&
+        (sandboxDemoActive ? (
+          <SandboxActiveBanner />
+        ) : (
+          <SandboxActivationCard />
+        ))}
 
       {/* Quick action pills */}
       <div className="flex flex-wrap gap-2">

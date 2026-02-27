@@ -16,10 +16,14 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { CitationBadge } from "@/components/shared/CitationBadge";
 import { DetailDrawer } from "@/components/shared/DetailDrawer";
-import { EmptyState } from "@/components/shared/EmptyState";
+import {
+  SandboxActivationCard,
+  SandboxActiveBanner,
+} from "@/components/shared/SandboxBanner";
+import { useSandboxDemo } from "@/context/SandboxContext";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { Sparkles, Info } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { MedicationDosageChart } from "@/components/charts/MedicationDosageChart";
 import type { MedicationInsightsResponse } from "@/types/api";
 import { DEMO_MEDICATION_INSIGHTS } from "@/lib/sandboxMedications";
@@ -28,22 +32,18 @@ export function MedicationInsightsPage() {
   const [data, setData] = useState<MedicationInsightsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [isDemoData, setIsDemoData] = useState(false);
+  const [apiEmpty, setApiEmpty] = useState(false);
+  const { sandboxDemoActive } = useSandboxDemo();
 
   useEffect(() => {
     api
       .get<MedicationInsightsResponse>("/api/medications/insights")
       .then((result) => {
-        const apiEmpty =
+        const empty =
           result.insights.duplicates.length === 0 &&
           result.insights.changes.length === 0;
-        if (apiEmpty) {
-          setIsDemoData(true);
-          setData(DEMO_MEDICATION_INSIGHTS);
-        } else {
-          setIsDemoData(false);
-          setData(result);
-        }
+        setApiEmpty(empty);
+        setData(result);
       })
       .catch((err) => toast.error(err.message))
       .finally(() => setLoading(false));
@@ -65,7 +65,9 @@ export function MedicationInsightsPage() {
 
   if (!data) return null;
 
-  const { insights, methodology } = data;
+  const showDemo = apiEmpty && sandboxDemoActive;
+  const displayData = showDemo ? DEMO_MEDICATION_INSIGHTS : data;
+  const { insights, methodology } = displayData;
   const isEmpty =
     insights.duplicates.length === 0 && insights.changes.length === 0;
 
@@ -73,12 +75,7 @@ export function MedicationInsightsPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Medication Insights</h1>
 
-      {isDemoData && (
-        <div className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
-          <Info className="h-4 w-4 shrink-0" />
-          Showing demo insights — this sandbox persona has no medication records.
-        </div>
-      )}
+      {showDemo && <SandboxActiveBanner />}
 
       {/* Summary stats */}
       <div className="grid gap-3 sm:grid-cols-3">
@@ -104,12 +101,16 @@ export function MedicationInsightsPage() {
         </Card>
       </div>
 
-      {isEmpty ? (
-        <EmptyState
-          icon={Sparkles}
-          title="No medication insights available"
-          description="This sandbox persona has no medication records. In a real deployment, medication duplicates and dosage change tracking would appear here."
-        />
+      {apiEmpty && !sandboxDemoActive ? (
+        <SandboxActivationCard />
+      ) : isEmpty ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <Sparkles className="h-12 w-12 text-muted-foreground/50" />
+          <h3 className="mt-4 text-lg font-medium">No medication insights available</h3>
+          <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+            No medication insights match the current data.
+          </p>
+        </div>
       ) : (
         <>
           {/* Duplicates */}
@@ -133,8 +134,8 @@ export function MedicationInsightsPage() {
                       {group.occurrences.map((occ) => (
                         <div
                           key={occ.id}
-                          className={`flex items-center justify-between rounded p-2 ${isDemoData ? "" : "cursor-pointer hover:bg-accent"}`}
-                          onClick={isDemoData ? undefined : () => setSelectedId(occ.id)}
+                          className={`flex items-center justify-between rounded p-2 ${showDemo ? "" : "cursor-pointer hover:bg-accent"}`}
+                          onClick={showDemo ? undefined : () => setSelectedId(occ.id)}
                         >
                           <div>
                             {occ.dosage && (
@@ -180,8 +181,8 @@ export function MedicationInsightsPage() {
                       {group.history.map((entry) => (
                         <div
                           key={entry.id}
-                          className={`relative mb-4 last:mb-0 ${isDemoData ? "" : "cursor-pointer"}`}
-                          onClick={isDemoData ? undefined : () => setSelectedId(entry.id)}
+                          className={`relative mb-4 last:mb-0 ${showDemo ? "" : "cursor-pointer"}`}
+                          onClick={showDemo ? undefined : () => setSelectedId(entry.id)}
                         >
                           <div className="absolute -left-[1.35rem] top-1 h-3 w-3 rounded-full border-2 border-primary bg-background" />
                           <div className="rounded p-2 hover:bg-accent">
