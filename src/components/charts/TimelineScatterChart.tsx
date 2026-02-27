@@ -175,7 +175,6 @@ export function TimelineScatterChart({
             dataKey="x"
             height={24}
             stroke="oklch(0.6 0.02 260)"
-            data={allDots}
             tickFormatter={(ts: number) =>
               new Date(ts).toLocaleDateString("en-US", {
                 month: "short",
