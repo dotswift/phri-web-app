@@ -130,7 +130,7 @@ export function ImmunizationsPage() {
                   )}
                 </div>
                 <div className="min-w-0 space-y-1.5">
-                  <p className="text-sm leading-relaxed">{finding.text}</p>
+                  <p className="text-base leading-relaxed">{finding.text}</p>
                   {finding.citations.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {finding.citations.map((c, ci) => (

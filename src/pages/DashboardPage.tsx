@@ -127,7 +127,7 @@ export function DashboardPage() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold">{label}</p>
-                  <p className="text-xs text-muted-foreground">{description}</p>
+                  <p className="text-sm text-muted-foreground">{description}</p>
                 </div>
                 <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5" />
               </CardContent>
@@ -169,13 +169,13 @@ export function DashboardPage() {
                     ) : (
                       <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-500" />
                     )}
-                    <p className="text-xs text-muted-foreground line-clamp-2">
+                    <p className="text-sm text-muted-foreground line-clamp-2">
                       {f.text}
                     </p>
                   </div>
                 ))
               ) : (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   No medication insights available yet.
                 </p>
               )}
@@ -219,19 +219,19 @@ export function DashboardPage() {
                     ) : (
                       <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-500" />
                     )}
-                    <p className="text-xs text-muted-foreground line-clamp-2">
+                    <p className="text-sm text-muted-foreground line-clamp-2">
                       {f.text}
                     </p>
                   </div>
                 ))
               ) : immunInsights &&
                 immunInsights.insights.summary.totalImmunizations > 0 ? (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   {immunInsights.insights.summary.totalImmunizations}{" "}
                   immunization records on file.
                 </p>
               ) : (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   No immunization data available yet.
                 </p>
               )}
