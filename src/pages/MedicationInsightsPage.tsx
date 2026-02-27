@@ -51,7 +51,11 @@ export function MedicationInsightsPage() {
           setData(result);
         }
       })
-      .catch((err) => toast.error(err.message))
+      .catch(() => {
+        // API failed — still show demo data so the page is never empty
+        setData(DEMO_MEDICATION_INSIGHTS);
+        setUsingDemo(true);
+      })
       .finally(() => setLoading(false));
   }, []);
 
