@@ -96,7 +96,7 @@ const SUMMARY_CARDS: {
     key: "medications",
     label: "Medications",
     icon: Pill,
-    link: "/records/medications",
+    link: "/records/medications/insights",
     resourceType: "MedicationRequest",
   },
 ];

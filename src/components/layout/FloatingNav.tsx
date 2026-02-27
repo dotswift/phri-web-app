@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { to: "/home", label: "Home", icon: Home },
   { to: "/timeline", label: "Timeline", icon: Clock },
-  { to: "/records/medications", label: "Medications", icon: Pill },
+  { to: "/records/medications/insights", label: "Medications", icon: Pill },
   { to: "/records/immunizations", label: "Immunizations", icon: Syringe },
 ];
 

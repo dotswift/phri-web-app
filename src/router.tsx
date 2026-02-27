@@ -16,11 +16,6 @@ import { Skeleton } from "./components/ui/skeleton";
 const TimelinePage = lazy(() =>
   import("./pages/TimelinePage").then((m) => ({ default: m.TimelinePage })),
 );
-const MedicationsPage = lazy(() =>
-  import("./pages/MedicationsPage").then((m) => ({
-    default: m.MedicationsPage,
-  })),
-);
 const MedicationInsightsPage = lazy(() =>
   import("./pages/MedicationInsightsPage").then((m) => ({
     default: m.MedicationInsightsPage,
@@ -168,11 +163,7 @@ export function AppRouter() {
               />
               <Route
                 path="/records/medications"
-                element={
-                  <Suspense fallback={<LazyFallback />}>
-                    <MedicationsPage />
-                  </Suspense>
-                }
+                element={<Navigate to="/records/medications/insights" replace />}
               />
               <Route
                 path="/records/medications/insights"
