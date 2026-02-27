@@ -3,8 +3,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Link } from "react-router-dom";
 import { FHIR_RESOURCE_COLORS } from "@/lib/colors";
+import {
+  useResourceDetail,
+  endpointForResourceType,
+} from "@/context/ResourceDetailContext";
 import {
   Heart,
   FileText,
@@ -33,6 +36,7 @@ interface CitationMarkerProps {
 }
 
 export function CitationMarker({ citation }: CitationMarkerProps) {
+  const { openResourceDetail } = useResourceDetail();
   const color = FHIR_RESOURCE_COLORS[citation.resourceType];
   const Icon = RESOURCE_ICONS[citation.resourceType];
 
@@ -65,12 +69,18 @@ export function CitationMarker({ citation }: CitationMarkerProps) {
           <p className="text-xs italic text-muted-foreground">
             "{citation.excerpt}"
           </p>
-          <Link
-            to={`/timeline?resourceType=${citation.resourceType}`}
+          <button
+            type="button"
             className="mt-2 block text-xs text-primary hover:underline"
+            onClick={() =>
+              openResourceDetail(
+                citation.fhirResourceId,
+                endpointForResourceType(citation.resourceType),
+              )
+            }
           >
             View Source
-          </Link>
+          </button>
         </div>
       </PopoverContent>
     </Popover>

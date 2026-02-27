@@ -3,18 +3,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ResourceTypeBadge } from "@/components/shared/ResourceTypeBadge";
 import { Breadcrumb } from "@/components/shared/Breadcrumb";
-import { DetailDrawer } from "@/components/shared/DetailDrawer";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { FlaskConical } from "lucide-react";
 import { FHIR_RESOURCE_COLORS } from "@/lib/colors";
+import { useResourceDetail } from "@/context/ResourceDetailContext";
 import type { TimelineResponse } from "@/types/api";
 
 export function LabResultsPage() {
+  const { openResourceDetail } = useResourceDetail();
   const [data, setData] = useState<TimelineResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -69,7 +69,7 @@ export function LabResultsPage() {
               key={item.id}
               className="cursor-pointer transition-colors hover:bg-accent"
               style={color ? { borderLeft: `3px solid ${color.badge}` } : undefined}
-              onClick={() => setSelectedId(item.id)}
+              onClick={() => openResourceDetail(item.id, "/api/timeline")}
             >
               <CardContent className="flex items-center justify-between p-3">
                 <div className="min-w-0 flex-1">
@@ -93,11 +93,6 @@ export function LabResultsPage() {
         </div>
       )}
 
-      <DetailDrawer
-        resourceId={selectedId}
-        endpoint="/api/timeline"
-        onClose={() => setSelectedId(null)}
-      />
     </div>
   );
 }

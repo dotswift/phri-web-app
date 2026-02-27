@@ -4,6 +4,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  useResourceDetail,
+  endpointForResourceType,
+} from "@/context/ResourceDetailContext";
 import type { Citation } from "@/types/api";
 
 interface CitationBadgeProps {
@@ -11,6 +15,8 @@ interface CitationBadgeProps {
 }
 
 export function CitationBadge({ citation }: CitationBadgeProps) {
+  const { openResourceDetail } = useResourceDetail();
+
   return (
     <Popover>
       <PopoverTrigger className="cursor-pointer">
@@ -37,6 +43,18 @@ export function CitationBadge({ citation }: CitationBadgeProps) {
               "{citation.excerpt}"
             </p>
           )}
+          <button
+            type="button"
+            className="mt-2 block text-xs text-primary hover:underline"
+            onClick={() =>
+              openResourceDetail(
+                citation.resourceId,
+                endpointForResourceType(citation.resourceType),
+              )
+            }
+          >
+            View Source
+          </button>
         </div>
       </PopoverContent>
     </Popover>

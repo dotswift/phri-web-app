@@ -4,13 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CitationBadge } from "@/components/shared/CitationBadge";
-import { DetailDrawer } from "@/components/shared/DetailDrawer";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { Syringe } from "lucide-react";
 import { ImmunizationTimeline } from "@/components/charts/ImmunizationTimeline";
 import { AnimatedList } from "@/components/shared/AnimatedList";
+import { useResourceDetail } from "@/context/ResourceDetailContext";
 import type { ImmunizationsResponse, ImmunizationItem } from "@/types/api";
 
 export function ImmunizationsPage() {
@@ -18,7 +18,7 @@ export function ImmunizationsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { openResourceDetail } = useResourceDetail();
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
@@ -124,7 +124,7 @@ export function ImmunizationsPage() {
                   <div
                     key={item.id}
                     className="flex cursor-pointer items-center justify-between rounded-md p-2 transition-colors hover:bg-accent"
-                    onClick={() => setSelectedId(item.id)}
+                    onClick={() => openResourceDetail(item.id, "/api/immunizations")}
                   >
                     <div>
                       <p className="text-sm font-medium">
@@ -146,11 +146,6 @@ export function ImmunizationsPage() {
         </div>
       )}
 
-      <DetailDrawer
-        resourceId={selectedId}
-        endpoint="/api/immunizations"
-        onClose={() => setSelectedId(null)}
-      />
     </div>
   );
 }

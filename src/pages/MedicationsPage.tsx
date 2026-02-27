@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CitationBadge } from "@/components/shared/CitationBadge";
-import { DetailDrawer } from "@/components/shared/DetailDrawer";
 import {
   SandboxActivationCard,
   SandboxActiveBanner,
@@ -21,6 +20,7 @@ import { useSandboxDemo } from "@/context/SandboxContext";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { Pill } from "lucide-react";
+import { useResourceDetail } from "@/context/ResourceDetailContext";
 import type { MedicationsResponse, MedicationItem } from "@/types/api";
 import { DEMO_MEDICATIONS } from "@/lib/sandboxMedications";
 
@@ -30,9 +30,9 @@ export function MedicationsPage() {
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [apiEmpty, setApiEmpty] = useState(false);
   const { sandboxDemoActive } = useSandboxDemo();
+  const { openResourceDetail } = useResourceDetail();
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
@@ -128,24 +128,19 @@ export function MedicationsPage() {
             <MedicationSection
               title="Active Medications"
               items={displayData!.active}
-              onSelect={showDemo ? undefined : setSelectedId}
+              onSelect={showDemo ? undefined : (id) => openResourceDetail(id, "/api/medications")}
             />
           )}
           {displayData!.other.length > 0 && (
             <MedicationSection
               title="Other Medications"
               items={displayData!.other}
-              onSelect={showDemo ? undefined : setSelectedId}
+              onSelect={showDemo ? undefined : (id) => openResourceDetail(id, "/api/medications")}
             />
           )}
         </>
       )}
 
-      <DetailDrawer
-        resourceId={selectedId}
-        endpoint="/api/medications"
-        onClose={() => setSelectedId(null)}
-      />
     </div>
   );
 }

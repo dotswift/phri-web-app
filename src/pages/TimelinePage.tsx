@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CitationBadge } from "@/components/shared/CitationBadge";
-import { DetailDrawer } from "@/components/shared/DetailDrawer";
 import { ResourceTypeBadge } from "@/components/shared/ResourceTypeBadge";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { api } from "@/lib/api";
@@ -21,6 +20,10 @@ import { toast } from "sonner";
 import { Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { AnimatedList } from "@/components/shared/AnimatedList";
 import { FHIR_RESOURCE_COLORS } from "@/lib/colors";
+import {
+  useResourceDetail,
+  endpointForResourceType,
+} from "@/context/ResourceDetailContext";
 import type { TimelineResponse } from "@/types/api";
 
 const RESOURCE_TYPES = [
@@ -36,9 +39,9 @@ const RESOURCE_TYPES = [
 
 export function TimelinePage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { openResourceDetail } = useResourceDetail();
   const [data, setData] = useState<TimelineResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<{ earliest: string; latest: string } | null>(null);
   const dateRangeComputed = useRef(false);
 
@@ -103,6 +106,19 @@ export function TimelinePage() {
   useEffect(() => {
     fetchTimeline();
   }, [fetchTimeline]);
+
+  // Deep-link: ?resourceId=abc opens modal then cleans URL
+  useEffect(() => {
+    const id = searchParams.get("resourceId");
+    const type = searchParams.get("resourceType") ?? "";
+    if (id) {
+      openResourceDetail(id, endpointForResourceType(type));
+      const next = new URLSearchParams(searchParams);
+      next.delete("resourceId");
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const updateParam = (key: string, value: string) => {
     const next = new URLSearchParams(searchParams);
@@ -186,7 +202,7 @@ export function TimelinePage() {
                   key={item.id}
                   className="cursor-pointer transition-colors hover:bg-accent"
                   style={color ? { borderLeft: `3px solid ${color.badge}` } : undefined}
-                  onClick={() => setSelectedId(item.id)}
+                  onClick={() => openResourceDetail(item.id, endpointForResourceType(item.resourceType))}
                 >
                   <CardContent className="flex items-center justify-between p-3">
                     <div className="min-w-0 flex-1">
@@ -242,11 +258,6 @@ export function TimelinePage() {
         </>
       )}
 
-      <DetailDrawer
-        resourceId={selectedId}
-        endpoint="/api/timeline"
-        onClose={() => setSelectedId(null)}
-      />
     </div>
   );
 }

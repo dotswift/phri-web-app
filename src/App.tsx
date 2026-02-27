@@ -3,6 +3,7 @@ import { ThemeProvider } from "next-themes";
 import { LazyMotion, domAnimation } from "motion/react";
 import { AuthProvider } from "./context/AuthContext";
 import { SandboxProvider } from "./context/SandboxContext";
+import { ResourceDetailProvider } from "./context/ResourceDetailContext";
 import { AppRouter } from "./router";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,12 +16,14 @@ export default function App() {
         <BrowserRouter>
           <AuthProvider>
             <SandboxProvider>
-              <ErrorBoundary>
-                <TooltipProvider delayDuration={300}>
-                  <AppRouter />
-                </TooltipProvider>
-              </ErrorBoundary>
-              <Toaster />
+              <ResourceDetailProvider>
+                <ErrorBoundary>
+                  <TooltipProvider delayDuration={300}>
+                    <AppRouter />
+                  </TooltipProvider>
+                </ErrorBoundary>
+                <Toaster />
+              </ResourceDetailProvider>
             </SandboxProvider>
           </AuthProvider>
         </BrowserRouter>

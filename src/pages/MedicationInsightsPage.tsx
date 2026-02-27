@@ -15,7 +15,6 @@ import {
 } from "@/components/ui/accordion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CitationBadge } from "@/components/shared/CitationBadge";
-import { DetailDrawer } from "@/components/shared/DetailDrawer";
 import {
   SandboxActivationCard,
   SandboxActiveBanner,
@@ -25,13 +24,14 @@ import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
 import { MedicationDosageChart } from "@/components/charts/MedicationDosageChart";
+import { useResourceDetail } from "@/context/ResourceDetailContext";
 import type { MedicationInsightsResponse } from "@/types/api";
 import { DEMO_MEDICATION_INSIGHTS } from "@/lib/sandboxMedications";
 
 export function MedicationInsightsPage() {
+  const { openResourceDetail } = useResourceDetail();
   const [data, setData] = useState<MedicationInsightsResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [apiEmpty, setApiEmpty] = useState(false);
   const { sandboxDemoActive } = useSandboxDemo();
 
@@ -135,7 +135,7 @@ export function MedicationInsightsPage() {
                         <div
                           key={occ.id}
                           className={`flex items-center justify-between rounded p-2 ${showDemo ? "" : "cursor-pointer hover:bg-accent"}`}
-                          onClick={showDemo ? undefined : () => setSelectedId(occ.id)}
+                          onClick={showDemo ? undefined : () => openResourceDetail(occ.id, "/api/medications")}
                         >
                           <div>
                             {occ.dosage && (
@@ -182,7 +182,7 @@ export function MedicationInsightsPage() {
                         <div
                           key={entry.id}
                           className={`relative mb-4 last:mb-0 ${showDemo ? "" : "cursor-pointer"}`}
-                          onClick={showDemo ? undefined : () => setSelectedId(entry.id)}
+                          onClick={showDemo ? undefined : () => openResourceDetail(entry.id, "/api/medications")}
                         >
                           <div className="absolute -left-[1.35rem] top-1 h-3 w-3 rounded-full border-2 border-primary bg-background" />
                           <div className="rounded p-2 hover:bg-accent">
@@ -253,11 +253,6 @@ export function MedicationInsightsPage() {
         </AccordionItem>
       </Accordion>
 
-      <DetailDrawer
-        resourceId={selectedId}
-        endpoint="/api/timeline"
-        onClose={() => setSelectedId(null)}
-      />
     </div>
   );
 }

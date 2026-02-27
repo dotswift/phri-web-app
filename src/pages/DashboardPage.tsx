@@ -17,6 +17,10 @@ import { FHIR_RESOURCE_COLORS } from "@/lib/colors";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { useSandboxDemo } from "@/context/SandboxContext";
+import {
+  useResourceDetail,
+  endpointForResourceType,
+} from "@/context/ResourceDetailContext";
 import { DEMO_MEDICATIONS } from "@/lib/sandboxMedications";
 import type { DashboardResponse } from "@/types/api";
 import {
@@ -107,6 +111,7 @@ export function DashboardPage() {
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const { sandboxDemoActive, activateSandboxDemo } = useSandboxDemo();
+  const { openResourceDetail } = useResourceDetail();
 
   useEffect(() => {
     api
@@ -217,11 +222,17 @@ export function DashboardPage() {
               {data.recentActivity.map((item) => {
                 const color = FHIR_RESOURCE_COLORS[item.resourceType];
                 return (
-                  <Link
+                  <button
                     key={item.id}
-                    to={`/timeline?resourceType=${item.resourceType}`}
-                    className="flex items-center justify-between rounded-md p-2 transition-colors hover:bg-accent"
+                    type="button"
+                    className="flex w-full items-center justify-between rounded-md p-2 text-left transition-colors hover:bg-accent"
                     style={color ? { borderLeft: `3px solid ${color.badge}` } : undefined}
+                    onClick={() =>
+                      openResourceDetail(
+                        item.id,
+                        endpointForResourceType(item.resourceType),
+                      )
+                    }
                   >
                     <div className="pl-2">
                       <p className="text-sm font-medium">
@@ -242,7 +253,7 @@ export function DashboardPage() {
                         )}
                       </div>
                     </div>
-                  </Link>
+                  </button>
                 );
               })}
             </AnimatedList>
