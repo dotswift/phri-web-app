@@ -6,6 +6,7 @@ import {
   Pill,
   Syringe,
   FolderOpen,
+  MessageSquare,
   Settings,
   Heart,
   FlaskConical,
@@ -159,6 +160,7 @@ export function FloatingNav() {
         <NavIconLink key={item.to} {...item} />
       ))}
       <RecordsPopover />
+      <NavIconLink to="/chat" label="Chat" icon={MessageSquare} />
       <Separator orientation="vertical" className="mx-1 h-5" />
       <NavIconLink to="/settings" label="Settings" icon={Settings} />
     </nav>
