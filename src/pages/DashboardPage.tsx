@@ -158,7 +158,7 @@ export function DashboardPage() {
         {SUMMARY_CARDS.map(({ key, label, icon: Icon, link, resourceType }) => {
           const color = FHIR_RESOURCE_COLORS[resourceType];
 
-          // Medications tile: show demo count or activation prompt when empty
+          // Medications tile: show demo count when active, or activation prompt
           if (key === "medications" && data.summary.medications === 0) {
             const demoCount =
               DEMO_MEDICATIONS.active.length + DEMO_MEDICATIONS.other.length;
@@ -167,11 +167,10 @@ export function DashboardPage() {
               return (
                 <Link key={key} to={link}>
                   <KpiCard
-                    title={label}
+                    title="Medications (demo)"
                     value={demoCount}
                     icon={<Icon className="h-5 w-5" style={{ color: color?.badge }} />}
                     accentColor={color?.badge}
-                    description="Demo data"
                   />
                 </Link>
               );
@@ -181,14 +180,13 @@ export function DashboardPage() {
               <button
                 key={key}
                 onClick={activateSandboxDemo}
-                className="text-left"
+                className="w-full text-left"
               >
                 <KpiCard
-                  title={label}
+                  title="Medications (try demo)"
                   value={0}
                   icon={<Icon className="h-5 w-5" style={{ color: color?.badge }} />}
                   accentColor={color?.badge}
-                  description="Activate demo data →"
                 />
               </button>
             );
