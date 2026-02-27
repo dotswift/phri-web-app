@@ -7,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ResourceTypeBadge } from "@/components/shared/ResourceTypeBadge";
 import { CitationBadge } from "@/components/shared/CitationBadge";
@@ -138,11 +137,6 @@ export function DashboardPage() {
             lastSynced={data.patient.lastSyncedAt}
           />
         </div>
-        <Badge
-          variant={data.patient.status === "ready" ? "default" : "secondary"}
-        >
-          {data.patient.status}
-        </Badge>
       </div>
 
       {/* Summary KPI cards */}
