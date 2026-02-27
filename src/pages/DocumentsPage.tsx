@@ -1,34 +1,42 @@
 import { useEffect, useState, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ResourceTypeBadge } from "@/components/shared/ResourceTypeBadge";
+import { Badge } from "@/components/ui/badge";
 import { Breadcrumb } from "@/components/shared/Breadcrumb";
-import { DetailDrawer } from "@/components/shared/DetailDrawer";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { FileText } from "lucide-react";
-import { FHIR_RESOURCE_COLORS } from "@/lib/colors";
-import type { TimelineResponse } from "@/types/api";
+import { FileText, ExternalLink, Loader2 } from "lucide-react";
+import type { DocumentListResponse, DocumentUrlResponse, DocumentItem } from "@/types/api";
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function getDocumentTitle(doc: DocumentItem): string {
+  return (
+    doc.description ??
+    doc.type?.coding?.[0]?.display ??
+    doc.type?.text ??
+    doc.fileName
+  );
+}
 
 export function DocumentsPage() {
-  const [data, setData] = useState<TimelineResponse | null>(null);
+  const [data, setData] = useState<DocumentListResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [viewingFileName, setViewingFileName] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({
-        resourceType: "DiagnosticReport",
-        limit: "50",
-      });
-      const result = await api.get<TimelineResponse>(
-        `/api/timeline?${params.toString()}`,
-      );
+      const result = await api.get<DocumentListResponse>("/api/documents");
       setData(result);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to load");
+      toast.error(err instanceof Error ? err.message : "Failed to load documents");
     } finally {
       setLoading(false);
     }
@@ -37,6 +45,23 @@ export function DocumentsPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const handleViewPdf = async (fileName: string) => {
+    setViewingFileName(fileName);
+    try {
+      const params = new URLSearchParams({ fileName, type: "pdf" });
+      const result = await api.get<DocumentUrlResponse>(
+        `/api/documents/url?${params.toString()}`,
+      );
+      window.open(result.url, "_blank");
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to get document URL",
+      );
+    } finally {
+      setViewingFileName(null);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -51,50 +76,59 @@ export function DocumentsPage() {
             <Skeleton key={i} className="h-16" />
           ))}
         </div>
-      ) : !data || data.items.length === 0 ? (
+      ) : !data || data.documents.length === 0 ? (
         <EmptyState
           icon={FileText}
           title="No documents found"
-          description="No documents or diagnostic reports have been recorded."
+          description="No source documents have been recorded."
         />
       ) : (
         <div className="space-y-2">
-          {data.items.map((item) => {
-            const color = FHIR_RESOURCE_COLORS[item.resourceType];
-            return (
-            <Card
-              key={item.id}
-              className="cursor-pointer transition-colors hover:bg-accent"
-              style={color ? { borderLeft: `3px solid ${color.badge}` } : undefined}
-              onClick={() => setSelectedId(item.id)}
-            >
-              <CardContent className="flex items-center justify-between p-3">
+          {data.documents.map((doc) => (
+            <Card key={doc.id}>
+              <CardContent className="flex items-center justify-between gap-3 p-3">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">
-                    {item.displayText ?? "Unknown"}
+                    {getDocumentTitle(doc)}
                   </p>
-                  <p className="text-xs text-muted-foreground">{item.source}</p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    {doc.mimeType && <span>{doc.mimeType}</span>}
+                    {doc.size != null && <span>{formatBytes(doc.size)}</span>}
+                    {doc.indexed && (
+                      <span>
+                        {new Date(doc.indexed).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <ResourceTypeBadge resourceType={item.resourceType} />
-                  {item.dateRecorded && (
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(item.dateRecorded).toLocaleDateString()}
-                    </span>
+                  {doc.status && (
+                    <Badge variant="outline" className="text-xs">
+                      {doc.status}
+                    </Badge>
                   )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={viewingFileName === doc.fileName}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleViewPdf(doc.fileName);
+                    }}
+                  >
+                    {viewingFileName === doc.fileName ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <ExternalLink className="h-4 w-4" />
+                    )}
+                    View PDF
+                  </Button>
                 </div>
               </CardContent>
             </Card>
-            );
-          })}
+          ))}
         </div>
       )}
-
-      <DetailDrawer
-        resourceId={selectedId}
-        endpoint="/api/timeline"
-        onClose={() => setSelectedId(null)}
-      />
     </div>
   );
 }

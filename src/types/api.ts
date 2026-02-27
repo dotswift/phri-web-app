@@ -230,6 +230,33 @@ export interface ChatMessage {
   createdAt: string;
 }
 
+// --- Documents (Metriport source documents) ---
+export interface DocumentItem {
+  id: string;
+  fileName: string;
+  description?: string;
+  status?: string;
+  indexed?: string;
+  mimeType?: string;
+  size?: number;
+  type?: {
+    coding?: Array<{
+      system?: string | null;
+      code?: string | null;
+      display?: string | null;
+    }>;
+    text?: string;
+  };
+}
+
+export interface DocumentListResponse {
+  documents: DocumentItem[];
+}
+
+export interface DocumentUrlResponse {
+  url: string;
+}
+
 // --- Settings ---
 export interface SettingsResponse {
   aiModeEnabled: boolean;
