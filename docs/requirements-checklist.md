@@ -42,18 +42,18 @@ Build a consumer "personal health record + insights" web app using the Metriport
   - **Backend enforcement:** Consent state stored via `POST /api/consent`; `RequireConsent` guard checks consent before allowing navigation to `/connect` or any data routes.
 - [x] **Connect Sandbox Record** screen: pick a sandbox persona and link it to the signed-in user.
 - [x] Trigger Metriport **Network Query** (async) to pull data and track the status in the UI for the user, store the data for later processing.
-- [ ] Example UI flow: Sign in → 2) Consent → 3) Select sandbox persona → 4) Retrieval progress screen → 5) Dashboard ready → 6) Timeline drilldown → 7) Deep Insight → 8) Chat with citations → 9) Delete my data
+- [x] Example UI flow: Sign in → 2) Consent → 3) Select sandbox persona → 4) Retrieval progress screen → 5) Dashboard ready → 6) Timeline drilldown → 7) Deep Insight → 8) Chat with citations → 9) Delete my data
 
 #### Core UX
 
 Implement these screens:
 
-- [ ] **Home/Dashboard:** connected record, last updated, status (ready/running/partial/failed), and 3–6 summary cards (counts, active meds, etc.). CTAs to Timeline, Deep Dive, Chat.
-- [ ] **Timeline:** filter by category (encounters/conditions/meds/immunizations/labs), time range control, and an event details drawer/modal.
-- [ ] **Medications view:** grouped list + search/filter + details drawer.
-- [ ] **Immunizations view:** grouped list + details drawer.
-- [ ] **Settings:** Disconnect, **Delete my data**, and "AI mode" toggle.
-- [ ] **Citations UX requirement:** anywhere you show clinical facts, provide sources to back them up.
+- [x] **Home/Dashboard:** connected record, last updated, status (ready/running/partial/failed), and 3–6 summary cards (counts, active meds, etc.). CTAs to Timeline, Deep Dive, Chat.
+- [x] **Timeline:** filter by category (encounters/conditions/meds/immunizations/labs), time range control, and an event details drawer/modal.
+- [x] **Medications view:** grouped list + search/filter + details drawer.
+- [x] **Immunizations view:** grouped list + details drawer.
+- [x] **Settings:** Disconnect, **Delete my data**, and "AI mode" toggle.
+- [x] **Citations UX requirement:** anywhere you show clinical facts, provide sources to back them up.
 
 #### Insight features
 

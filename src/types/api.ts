@@ -69,6 +69,7 @@ export interface DashboardResponse {
     displayText: string | null;
     dateRecorded: string | null;
     source: string | null;
+    citation: Citation;
   }>;
 }
 

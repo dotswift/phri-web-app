@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ResourceTypeBadge } from "@/components/shared/ResourceTypeBadge";
+import { CitationBadge } from "@/components/shared/CitationBadge";
 import { DataProvenance } from "@/components/shared/DataProvenance";
 import { KpiCard } from "@/components/charts/KpiCard";
 import { AnimatedList } from "@/components/shared/AnimatedList";
@@ -206,13 +207,16 @@ export function DashboardPage() {
                         {item.source}
                       </p>
                     </div>
-                    <div className="text-right">
-                      <ResourceTypeBadge resourceType={item.resourceType} />
-                      {item.dateRecorded && (
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {new Date(item.dateRecorded).toLocaleDateString()}
-                        </p>
-                      )}
+                    <div className="flex items-center gap-2">
+                      <CitationBadge citation={item.citation} />
+                      <div className="text-right">
+                        <ResourceTypeBadge resourceType={item.resourceType} />
+                        {item.dateRecorded && (
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {new Date(item.dateRecorded).toLocaleDateString()}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </Link>
                 );
