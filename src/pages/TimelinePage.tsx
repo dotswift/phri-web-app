@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,8 @@ export function TimelinePage() {
   const [data, setData] = useState<TimelineResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [dateRange, setDateRange] = useState<{ earliest: string; latest: string } | null>(null);
+  const dateRangeComputed = useRef(false);
 
   const resourceType = searchParams.get("resourceType") ?? "All";
   const dateFrom = searchParams.get("dateFrom") ?? "";
@@ -64,6 +66,34 @@ export function TimelinePage() {
         `/api/timeline?${params.toString()}`,
       );
       setData(result);
+
+      // Compute date range from initial unfiltered fetch
+      if (!dateFrom && !dateTo && !dateRangeComputed.current && result.items.length > 0) {
+        dateRangeComputed.current = true;
+        const latest = result.items[0].dateRecorded?.split("T")[0] ?? "";
+        let earliest = result.items[result.items.length - 1].dateRecorded?.split("T")[0] ?? "";
+
+        if (result.pagination.totalPages > 1) {
+          try {
+            const lastPageParams = new URLSearchParams();
+            if (resourceType !== "All") lastPageParams.set("resourceType", resourceType);
+            lastPageParams.set("page", String(result.pagination.totalPages));
+            lastPageParams.set("limit", "1");
+            const lastPage = await api.get<TimelineResponse>(
+              `/api/timeline?${lastPageParams.toString()}`,
+            );
+            if (lastPage.items.length > 0 && lastPage.items[0].dateRecorded) {
+              earliest = lastPage.items[0].dateRecorded.split("T")[0];
+            }
+          } catch {
+            // Fall back to current page's earliest
+          }
+        }
+
+        if (latest && earliest) {
+          setDateRange({ earliest, latest });
+        }
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to load timeline");
     } finally {
@@ -115,7 +145,7 @@ export function TimelinePage() {
           <Input
             id="date-from"
             type="date"
-            value={dateFrom}
+            value={dateFrom || dateRange?.earliest || ""}
             onChange={(e) => updateParam("dateFrom", e.target.value)}
             className="w-40"
             aria-label="From date"
@@ -126,7 +156,7 @@ export function TimelinePage() {
           <Input
             id="date-to"
             type="date"
-            value={dateTo}
+            value={dateTo || dateRange?.latest || ""}
             onChange={(e) => updateParam("dateTo", e.target.value)}
             className="w-40"
             aria-label="To date"
