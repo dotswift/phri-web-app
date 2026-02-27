@@ -22,7 +22,16 @@ Build a consumer "personal health record + insights" web app using the Metriport
 
 #### UI Flow (Feel free to change)
 
-- [ ] **Sign in** (any method) and enforce user isolation.
+- [x] **Sign in** (any method) and enforce user isolation.
+  - Each authenticated user can only see and interact with their own data
+    - Frontend: Route guards (RequireAuth → RequireConsent → RequirePatient) gate access. All API calls go through centralized `apiFetch()` with no user IDs in URLs — backend determines identity from JWT.
+    - Backend: Every service method receives `userId` (extracted from JWT `sub` claim) and filters all queries by it. E.g., `getTimeline(userId)` looks up patient by userId, then filters FHIR resources by `patientId`.
+  - API calls are scoped to the logged-in user (e.g., via row-level security in Supabase, or filtering by user ID on the backend)
+    - Frontend: Every request includes `Authorization: Bearer ${token}` via `apiFetch()` wrapper (`src/lib/api.ts`). No request can be made without a valid Supabase session.
+    - Backend: Auth middleware (`middleware/auth.ts`) verifies JWT signature using Supabase's public key, extracts `sub` claim as user ID, sets `req.user`. All route handlers pass `req.user!.id` to service methods. No Supabase admin client used in application routes.
+  - No way to enumerate or access another user's resources by guessing IDs
+    - Frontend: No user IDs appear in any URL paths. Resource detail fetches use resource IDs, but authorization is enforced server-side.
+    - Backend: All detail endpoints validate ownership before returning data. Chat sessions check `session.userId !== userId` (throws 403). Timeline/medication/immunization detail endpoints check `resource.patientId !== patient.id` (returns 404, preventing information leakage). Integration tests explicitly verify cross-user access returns 404/403.
 - [ ] **Consent screen before retrieval** (explicit acknowledgment): what data is fetched, how it's used (insights/chat), delete controls, and (if applicable) external LLM data flow.
 - [ ] **Connect Sandbox Record** screen: pick a sandbox persona and link it to the signed-in user.
 - [ ] Trigger Metriport **Network Query** (async) to pull data and track the status in the UI for the user, store the data for later processing.
@@ -128,3 +137,9 @@ Please submit the following by 5pm PST 2/27/2026:
 - [ ] A GitHub repository or a `.zip` file with all materials
 - [ ] Video walking through the product and your thought process. (Hit the points in the evaluation criteria)
 - [ ] Share the repo / zip file with albright@coretsu.com
+
+---
+
+## BONUS TODO
+
+- [ ] **Row-level security (RLS) for user isolation enhancement** — Currently user isolation is enforced entirely in application code (service-layer filtering by userId/patientId). Adding Supabase RLS policies would provide defense-in-depth so that even a bug in application code cannot expose another user's data.
