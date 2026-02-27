@@ -98,7 +98,7 @@ const SUMMARY_CARDS: {
 ];
 
 const QUICK_ACTIONS = [
-  { label: "Timeline", icon: Clock, to: "/records/timeline" },
+  { label: "Timeline", icon: Clock, to: "/timeline" },
   { label: "Deep Dive", icon: Sparkles, to: "/records/medications/insights" },
   { label: "Chat", icon: MessageSquare, to: "/chat" },
 ];
@@ -219,7 +219,7 @@ export function DashboardPage() {
                 return (
                   <Link
                     key={item.id}
-                    to={`/records/timeline?resourceType=${item.resourceType}`}
+                    to={`/timeline?resourceType=${item.resourceType}`}
                     className="flex items-center justify-between rounded-md p-2 transition-colors hover:bg-accent"
                     style={color ? { borderLeft: `3px solid ${color.badge}` } : undefined}
                   >

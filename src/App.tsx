@@ -5,6 +5,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { SandboxProvider } from "./context/SandboxContext";
 import { AppRouter } from "./router";
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 
 export default function App() {
@@ -15,7 +16,9 @@ export default function App() {
           <AuthProvider>
             <SandboxProvider>
               <ErrorBoundary>
-                <AppRouter />
+                <TooltipProvider delayDuration={300}>
+                  <AppRouter />
+                </TooltipProvider>
               </ErrorBoundary>
               <Toaster />
             </SandboxProvider>

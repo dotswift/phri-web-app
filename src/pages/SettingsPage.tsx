@@ -18,6 +18,7 @@ import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import { LogOut, User } from "lucide-react";
 import type { SettingsResponse } from "@/types/api";
 
 export function SettingsPage() {
@@ -25,7 +26,7 @@ export function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const { refreshUserState } = useAuth();
+  const { user, signOut, refreshUserState } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -92,6 +93,24 @@ export function SettingsPage() {
   return (
     <div className="max-w-2xl space-y-6">
       <h1 className="text-2xl font-bold">Settings</h1>
+
+      {/* Account */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Account</CardTitle>
+          <CardDescription>Your signed-in identity</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-3">
+            <div className="flex size-10 items-center justify-center rounded-full bg-muted">
+              <User className="size-5 text-muted-foreground" />
+            </div>
+            <span className="text-sm font-medium">
+              {user?.email ?? "Unknown"}
+            </span>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Connected Record */}
       <Card>
@@ -173,6 +192,28 @@ export function SettingsPage() {
                 : "AI Chat Disabled"}
             </Label>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Sign Out */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Sign Out</CardTitle>
+          <CardDescription>
+            Sign out of your account on this device
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            variant="outline"
+            onClick={async () => {
+              await signOut();
+              navigate("/login");
+            }}
+          >
+            <LogOut className="size-4" />
+            Sign Out
+          </Button>
         </CardContent>
       </Card>
 

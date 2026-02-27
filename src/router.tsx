@@ -10,7 +10,6 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { ChatPage } from "./pages/ChatPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { RecordsCategoryGrid } from "./pages/RecordsCategoryGrid";
-import { ProfilePage } from "./pages/ProfilePage";
 import { Skeleton } from "./components/ui/skeleton";
 
 // Lazy-load chart-heavy and less-visited pages
@@ -150,10 +149,9 @@ export function AppRouter() {
           <Route path="/connect" element={<ConnectPage />} />
           <Route path="/progress" element={<ProgressPage />} />
 
-          {/* Profile/Settings accessible without patient */}
+          {/* Settings accessible without patient */}
           <Route element={<AppLayout />}>
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/profile/settings" element={<SettingsPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
           </Route>
 
           <Route element={<RequirePatient />}>
@@ -217,7 +215,7 @@ export function AppRouter() {
                 }
               />
               <Route
-                path="/records/timeline"
+                path="/timeline"
                 element={
                   <Suspense fallback={<LazyFallback />}>
                     <TimelinePage />
@@ -233,8 +231,8 @@ export function AppRouter() {
       {/* Redirects from old paths */}
       <Route path="/dashboard" element={<Navigate to="/home" replace />} />
       <Route
-        path="/timeline"
-        element={<Navigate to="/records/timeline" replace />}
+        path="/records/timeline"
+        element={<Navigate to="/timeline" replace />}
       />
       <Route
         path="/medications"
@@ -249,8 +247,12 @@ export function AppRouter() {
         element={<Navigate to="/records/immunizations" replace />}
       />
       <Route
-        path="/settings"
-        element={<Navigate to="/profile/settings" replace />}
+        path="/profile"
+        element={<Navigate to="/settings" replace />}
+      />
+      <Route
+        path="/profile/settings"
+        element={<Navigate to="/settings" replace />}
       />
 
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -66,7 +66,7 @@ export function CitationMarker({ citation }: CitationMarkerProps) {
             "{citation.excerpt}"
           </p>
           <Link
-            to={`/records/timeline?resourceType=${citation.resourceType}`}
+            to={`/timeline?resourceType=${citation.resourceType}`}
             className="mt-2 block text-xs text-primary hover:underline"
           >
             View Source

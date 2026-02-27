@@ -139,7 +139,7 @@ export function RecordsCategoryGrid() {
       </AnimatedList>
 
       <Link
-        to="/records/timeline"
+        to="/timeline"
         className="block text-sm text-primary hover:underline"
       >
         View full timeline
