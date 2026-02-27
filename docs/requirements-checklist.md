@@ -32,7 +32,14 @@ Build a consumer "personal health record + insights" web app using the Metriport
   - No way to enumerate or access another user's resources by guessing IDs
     - Frontend: No user IDs appear in any URL paths. Resource detail fetches use resource IDs, but authorization is enforced server-side.
     - Backend: All detail endpoints validate ownership before returning data. Chat sessions check `session.userId !== userId` (throws 403). Timeline/medication/immunization detail endpoints check `resource.patientId !== patient.id` (returns 404, preventing information leakage). Integration tests explicitly verify cross-user access returns 404/403.
-- [ ] **Consent screen before retrieval** (explicit acknowledgment): what data is fetched, how it's used (insights/chat), delete controls, and (if applicable) external LLM data flow.
+- [x] **Consent screen before retrieval** (explicit acknowledgment): what data is fetched, how it's used (insights/chat), delete controls, and (if applicable) external LLM data flow.
+  - Three-step flow (Inform → Select → Confirm) in `src/pages/ConsentPage.tsx`, gated by `RequireConsent` route guard — user cannot reach data retrieval without completing consent.
+  - **What data is fetched & how it's used:** Inform step explains records are fetched from connected provider networks to power the insights dashboard and AI-powered chat.
+  - **Encryption specifics:** States data is stored in an encrypted database (AES-256 at rest, TLS in transit) — verified against Supabase infrastructure.
+  - **Data retention:** Discloses records and chat history are stored until the user chooses to delete them; AI-sent excerpts are processed in real-time and not used to train AI models (per Anthropic API usage policy).
+  - **External LLM data flow:** Dedicated `llmDataFlow` consent checkbox explains questions are de-identified (personal identifiers stripped) before processing, health record excerpts include clinical details (conditions, medications, dates) but not name, address, or other direct identifiers. Confirm step warns that excerpts sent to the AI provider are subject to the provider's data handling policies.
+  - **Delete controls & consent revocation:** `deletionRights` checkbox covers both disabling AI chat in Settings (stops sending data to AI provider) and full permanent deletion of records, chat history, and account data.
+  - **Backend enforcement:** Consent state stored via `POST /api/consent`; `RequireConsent` guard checks consent before allowing navigation to `/connect` or any data routes.
 - [ ] **Connect Sandbox Record** screen: pick a sandbox persona and link it to the signed-in user.
 - [ ] Trigger Metriport **Network Query** (async) to pull data and track the status in the UI for the user, store the data for later processing.
 - [ ] Example UI flow: Sign in → 2) Consent → 3) Select sandbox persona → 4) Retrieval progress screen → 5) Dashboard ready → 6) Timeline drilldown → 7) Deep Insight → 8) Chat with citations → 9) Delete my data
@@ -105,7 +112,7 @@ Submit:
 
 - [ ] Runs locally from README + `.env.example`
 - [ ] Auth with user isolation
-- [ ] Consent screen before data retrieval
+- [x] Consent screen before data retrieval
 - [ ] Sandbox persona connect + async retrieval with status tracking
 - [ ] FHIR data stored and used downstream
 - [ ] Dashboard, Timeline, Medications, Immunizations, Settings — all with citations
