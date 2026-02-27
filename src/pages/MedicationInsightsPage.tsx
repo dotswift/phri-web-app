@@ -15,11 +15,6 @@ import {
 } from "@/components/ui/accordion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CitationBadge } from "@/components/shared/CitationBadge";
-import {
-  SandboxActivationCard,
-  SandboxActiveBanner,
-} from "@/components/shared/SandboxBanner";
-import { useSandboxDemo } from "@/context/SandboxContext";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import {
@@ -39,8 +34,7 @@ export function MedicationInsightsPage() {
   const { openResourceDetail } = useResourceDetail();
   const [data, setData] = useState<MedicationInsightsResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [apiEmpty, setApiEmpty] = useState(false);
-  const { sandboxDemoActive } = useSandboxDemo();
+  const [usingDemo, setUsingDemo] = useState(false);
 
   useEffect(() => {
     api
@@ -48,9 +42,14 @@ export function MedicationInsightsPage() {
       .then((result) => {
         const empty =
           result.insights.duplicates.length === 0 &&
-          result.insights.changes.length === 0;
-        setApiEmpty(empty);
-        setData(result);
+          result.insights.changes.length === 0 &&
+          result.findings.length === 0;
+        if (empty) {
+          setData(DEMO_MEDICATION_INSIGHTS);
+          setUsingDemo(true);
+        } else {
+          setData(result);
+        }
       })
       .catch((err) => toast.error(err.message))
       .finally(() => setLoading(false));
@@ -72,9 +71,7 @@ export function MedicationInsightsPage() {
 
   if (!data) return null;
 
-  const showDemo = apiEmpty && sandboxDemoActive;
-  const displayData = showDemo ? DEMO_MEDICATION_INSIGHTS : data;
-  const { findings, narrativeSummary, insights, methodology } = displayData;
+  const { findings, narrativeSummary, insights, methodology } = data;
   const isEmpty =
     insights.duplicates.length === 0 && insights.changes.length === 0;
 
@@ -82,7 +79,15 @@ export function MedicationInsightsPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Medication Insights</h1>
 
-      {showDemo && <SandboxActiveBanner />}
+      {usingDemo && (
+        <div className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
+          <Info className="h-4 w-4 shrink-0" />
+          <span>
+            Showing demo medication data — this sandbox persona has no real
+            medication records.
+          </span>
+        </div>
+      )}
 
       {/* Compact stat row */}
       <p className="text-sm text-muted-foreground">
@@ -140,9 +145,7 @@ export function MedicationInsightsPage() {
         </Card>
       )}
 
-      {apiEmpty && !sandboxDemoActive ? (
-        <SandboxActivationCard />
-      ) : isEmpty ? (
+      {isEmpty ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <Sparkles className="h-12 w-12 text-muted-foreground/50" />
           <h3 className="mt-4 text-lg font-medium">No medication insights available</h3>
@@ -193,8 +196,8 @@ export function MedicationInsightsPage() {
                       {group.occurrences.map((occ) => (
                         <div
                           key={occ.id}
-                          className={`flex items-center justify-between rounded p-2 ${showDemo ? "" : "cursor-pointer hover:bg-accent"}`}
-                          onClick={showDemo ? undefined : () => openResourceDetail(occ.id, "/api/medications")}
+                          className={`flex items-center justify-between rounded p-2 ${usingDemo ? "" : "cursor-pointer hover:bg-accent"}`}
+                          onClick={usingDemo ? undefined : () => openResourceDetail(occ.id, "/api/medications")}
                         >
                           <div>
                             {occ.dosage && (
@@ -253,8 +256,8 @@ export function MedicationInsightsPage() {
                         {group.history.map((entry) => (
                           <div
                             key={entry.id + entry.date}
-                            className={`relative mb-4 last:mb-0 ${showDemo ? "" : "cursor-pointer"}`}
-                            onClick={showDemo ? undefined : () => openResourceDetail(entry.id, "/api/medications")}
+                            className={`relative mb-4 last:mb-0 ${usingDemo ? "" : "cursor-pointer"}`}
+                            onClick={usingDemo ? undefined : () => openResourceDetail(entry.id, "/api/medications")}
                           >
                             <div className="absolute -left-[1.35rem] top-1 h-3 w-3 rounded-full border-2 border-primary bg-background" />
                             <div className="rounded p-2 hover:bg-accent">

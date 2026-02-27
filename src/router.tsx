@@ -116,14 +116,8 @@ function RootRedirect() {
 
 function LoadingScreen() {
   return (
-    <div className="flex h-screen flex-col items-center justify-center gap-4 animate-in fade-in duration-300">
-      <div>
-        <h1 className="text-2xl font-bold text-center">PHRI</h1>
-        <p className="text-sm text-muted-foreground">
-          Personal Health Record &amp; Insights
-        </p>
-      </div>
-      <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+    <div className="flex h-screen items-center justify-center animate-in fade-in duration-300">
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
     </div>
   );
 }

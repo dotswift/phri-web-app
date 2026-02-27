@@ -8,32 +8,23 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ResourceTypeBadge } from "@/components/shared/ResourceTypeBadge";
-import { CitationBadge } from "@/components/shared/CitationBadge";
 import { DataProvenance } from "@/components/shared/DataProvenance";
-import { KpiCard } from "@/components/charts/KpiCard";
-import { AnimatedList } from "@/components/shared/AnimatedList";
-import { FHIR_RESOURCE_COLORS } from "@/lib/colors";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { useSandboxDemo } from "@/context/SandboxContext";
-import {
-  useResourceDetail,
-  endpointForResourceType,
-} from "@/context/ResourceDetailContext";
-import { DEMO_MEDICATIONS } from "@/lib/sandboxMedications";
-import type { DashboardResponse } from "@/types/api";
+import { DEMO_MEDICATION_INSIGHTS } from "@/lib/sandboxMedications";
+import type {
+  DashboardResponse,
+  MedicationInsightsResponse,
+  ImmunizationInsightsResponse,
+} from "@/types/api";
 import {
   Clock,
-  Sparkles,
-  MessageSquare,
-  Activity,
-  Heart,
   Pill,
   Syringe,
-  Stethoscope,
-  FileText,
-  Eye,
+  MessageSquare,
+  ArrowRight,
+  AlertTriangle,
+  Info,
 } from "lucide-react";
 
 function getGreeting(): string {
@@ -43,80 +34,76 @@ function getGreeting(): string {
   return "Good evening";
 }
 
-const SUMMARY_CARDS: {
-  key: keyof DashboardResponse["summary"];
-  label: string;
-  icon: React.ElementType;
-  link: string;
-  resourceType: string;
-}[] = [
+const NAV_CARDS = [
   {
-    key: "conditions",
-    label: "Conditions",
-    icon: Heart,
-    link: "/records/conditions",
-    resourceType: "Condition",
+    label: "Timeline",
+    description: "View your health events chronologically",
+    icon: Clock,
+    to: "/timeline",
+    color: "text-violet-600 dark:text-violet-400",
+    bg: "bg-violet-100 dark:bg-violet-900/30",
   },
   {
-    key: "observations",
-    label: "Observations",
-    icon: Eye,
-    link: "/records/lab-results",
-    resourceType: "Observation",
-  },
-  {
-    key: "encounters",
-    label: "Encounters",
-    icon: Stethoscope,
-    link: "/records/visits",
-    resourceType: "Encounter",
-  },
-  {
-    key: "immunizations",
-    label: "Immunizations",
-    icon: Syringe,
-    link: "/records/immunizations",
-    resourceType: "Immunization",
-  },
-  {
-    key: "procedures",
-    label: "Procedures",
-    icon: Activity,
-    link: "/records/visits",
-    resourceType: "Procedure",
-  },
-  {
-    key: "diagnosticReports",
-    label: "Diagnostic Reports",
-    icon: FileText,
-    link: "/records/documents",
-    resourceType: "DiagnosticReport",
-  },
-  {
-    key: "medications",
     label: "Medications",
+    description: "Insights, duplicates & dosage changes",
     icon: Pill,
-    link: "/records/medications/insights",
-    resourceType: "MedicationRequest",
+    to: "/records/medications/insights",
+    color: "text-blue-600 dark:text-blue-400",
+    bg: "bg-blue-100 dark:bg-blue-900/30",
   },
-];
-
-const QUICK_ACTIONS = [
-  { label: "Timeline", icon: Clock, to: "/timeline" },
-  { label: "Deep Dive", icon: Sparkles, to: "/records/medications/insights" },
-  { label: "Chat", icon: MessageSquare, to: "/chat" },
+  {
+    label: "Immunizations",
+    description: "Vaccine timeline & coverage",
+    icon: Syringe,
+    to: "/records/immunizations",
+    color: "text-emerald-600 dark:text-emerald-400",
+    bg: "bg-emerald-100 dark:bg-emerald-900/30",
+  },
+  {
+    label: "Chat",
+    description: "Ask questions about your records",
+    icon: MessageSquare,
+    to: "/chat",
+    color: "text-amber-600 dark:text-amber-400",
+    bg: "bg-amber-100 dark:bg-amber-900/30",
+  },
 ];
 
 export function DashboardPage() {
   const [data, setData] = useState<DashboardResponse | null>(null);
+  const [medInsights, setMedInsights] =
+    useState<MedicationInsightsResponse | null>(null);
+  const [immunInsights, setImmunInsights] =
+    useState<ImmunizationInsightsResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const { sandboxDemoActive, activateSandboxDemo } = useSandboxDemo();
-  const { openResourceDetail } = useResourceDetail();
 
   useEffect(() => {
-    api
-      .get<DashboardResponse>("/api/dashboard")
-      .then(setData)
+    Promise.all([
+      api.get<DashboardResponse>("/api/dashboard"),
+      api
+        .get<MedicationInsightsResponse>("/api/medications/insights")
+        .catch(() => null),
+      api
+        .get<ImmunizationInsightsResponse>("/api/immunizations/insights")
+        .catch(() => null),
+    ])
+      .then(([dash, meds, immun]) => {
+        setData(dash);
+
+        // Use demo data if API returns empty medication insights
+        if (
+          meds &&
+          meds.insights.duplicates.length === 0 &&
+          meds.insights.changes.length === 0 &&
+          meds.findings.length === 0
+        ) {
+          setMedInsights(DEMO_MEDICATION_INSIGHTS);
+        } else {
+          setMedInsights(meds);
+        }
+
+        setImmunInsights(immun);
+      })
       .catch((err) => toast.error(err.message))
       .finally(() => setLoading(false));
   }, []);
@@ -128,138 +115,148 @@ export function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Patient header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">
-            {getGreeting()}, {firstName}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {data.summary.totalResources} total resources
-          </p>
-          <DataProvenance
-            source={data.patient.sandboxPersona}
-            lastSynced={data.patient.lastSyncedAt}
-          />
-        </div>
+      {/* Greeting */}
+      <div>
+        <h1 className="text-2xl font-bold">
+          {getGreeting()}, {firstName}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          {data.summary.totalResources} total resources
+        </p>
+        <DataProvenance
+          source={data.patient.sandboxPersona}
+          lastSynced={data.patient.lastSyncedAt}
+        />
       </div>
 
-      {/* Summary KPI cards */}
-      <AnimatedList className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {SUMMARY_CARDS.map(({ key, label, icon: Icon, link, resourceType }) => {
-          const color = FHIR_RESOURCE_COLORS[resourceType];
-
-          // Medications tile: show demo count when active, or activation prompt
-          if (key === "medications" && data.summary.medications === 0) {
-            const demoCount =
-              DEMO_MEDICATIONS.active.length + DEMO_MEDICATIONS.other.length;
-
-            if (sandboxDemoActive) {
-              return (
-                <Link key={key} to={link}>
-                  <KpiCard
-                    title="Medications (demo)"
-                    value={demoCount}
-                    icon={<Icon className="h-5 w-5" style={{ color: color?.badge }} />}
-                    accentColor={color?.badge}
-                  />
-                </Link>
-              );
-            }
-
-            return (
-              <button
-                key={key}
-                onClick={activateSandboxDemo}
-                className="w-full text-left"
-              >
-                <KpiCard
-                  title="Medications (try demo)"
-                  value={0}
-                  icon={<Icon className="h-5 w-5" style={{ color: color?.badge }} />}
-                  accentColor={color?.badge}
-                />
-              </button>
-            );
-          }
-
-          return (
-            <Link key={key} to={link}>
-              <KpiCard
-                title={label}
-                value={data.summary[key]}
-                icon={<Icon className="h-5 w-5" style={{ color: color?.badge }} />}
-                accentColor={color?.badge}
-              />
-            </Link>
-          );
-        })}
-      </AnimatedList>
-
-      {/* Quick action pills */}
-      <div className="flex flex-wrap gap-2">
-        {QUICK_ACTIONS.map(({ label, icon: Icon, to }) => (
-          <Link
-            key={to}
-            to={to}
-            className="inline-flex items-center gap-2 rounded-full border bg-card px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
-          >
-            <Icon className="h-4 w-4 text-primary" />
-            {label}
+      {/* Navigation cards */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {NAV_CARDS.map(({ label, description, icon: Icon, to, color, bg }) => (
+          <Link key={to} to={to}>
+            <Card className="group h-full transition-all hover:shadow-md hover:-translate-y-0.5">
+              <CardContent className="flex items-start gap-3 p-4">
+                <div className={`rounded-lg p-2 ${bg}`}>
+                  <Icon className={`h-5 w-5 ${color}`} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold">{label}</p>
+                  <p className="text-xs text-muted-foreground">{description}</p>
+                </div>
+                <ArrowRight className="mt-1 h-4 w-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5" />
+              </CardContent>
+            </Card>
           </Link>
         ))}
       </div>
 
-      {/* Recent activity */}
-      {data.recentActivity.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Recent Activity</CardTitle>
-            <CardDescription>Latest health events</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AnimatedList className="space-y-3">
-              {data.recentActivity.map((item) => {
-                const color = FHIR_RESOURCE_COLORS[item.resourceType];
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className="flex w-full items-center justify-between rounded-md p-2 text-left transition-colors hover:bg-accent"
-                    style={color ? { borderLeft: `3px solid ${color.badge}` } : undefined}
-                    onClick={() =>
-                      openResourceDetail(
-                        item.id,
-                        endpointForResourceType(item.resourceType),
-                      )
-                    }
-                  >
-                    <div className="pl-2">
-                      <p className="text-sm font-medium">
-                        {item.displayText ?? "Unknown"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {item.source}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CitationBadge citation={item.citation} />
-                      <div className="text-right">
-                        <ResourceTypeBadge resourceType={item.resourceType} />
-                        {item.dateRecorded && (
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {new Date(item.dateRecorded).toLocaleDateString()}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </AnimatedList>
-          </CardContent>
-        </Card>
-      )}
+      {/* Insight summary cards */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Medication summary */}
+        <Link to="/records/medications/insights" className="group block">
+          <Card className="flex h-full flex-col transition-all hover:shadow-md hover:-translate-y-0.5">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <div className="rounded-lg bg-blue-100 p-1.5 dark:bg-blue-900/30">
+                  <Pill className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                </div>
+                <CardTitle className="text-base">
+                  Medication Insights
+                </CardTitle>
+              </div>
+              {medInsights && (
+                <CardDescription>
+                  {medInsights.insights.summary.totalActive} active
+                  {medInsights.insights.summary.providerCount > 0 &&
+                    ` · ${medInsights.insights.summary.providerCount} providers`}
+                  {medInsights.insights.summary.totalStopped > 0 &&
+                    ` · ${medInsights.insights.summary.totalStopped} stopped`}
+                </CardDescription>
+              )}
+            </CardHeader>
+            <CardContent className="flex flex-1 flex-col space-y-2">
+              {medInsights && medInsights.findings.length > 0 ? (
+                medInsights.findings.slice(0, 2).map((f, i) => (
+                  <div key={i} className="flex gap-2">
+                    {f.severity === "warning" ? (
+                      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                    ) : (
+                      <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-500" />
+                    )}
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {f.text}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  No medication insights available yet.
+                </p>
+              )}
+              <div className="flex-1" />
+              <p className="flex items-center gap-1 pt-2 text-xs font-medium text-primary transition-colors group-hover:underline">
+                View all medication insights
+                <ArrowRight className="h-3 w-3" />
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        {/* Immunization summary */}
+        <Link to="/records/immunizations" className="group block">
+          <Card className="flex h-full flex-col transition-all hover:shadow-md hover:-translate-y-0.5">
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <div className="rounded-lg bg-emerald-100 p-1.5 dark:bg-emerald-900/30">
+                  <Syringe className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <CardTitle className="text-base">
+                  Immunization Insights
+                </CardTitle>
+              </div>
+              {immunInsights && (
+                <CardDescription>
+                  {immunInsights.insights.summary.totalImmunizations} immunizations
+                  {" · "}
+                  {immunInsights.insights.summary.uniqueVaccines} vaccines
+                  {immunInsights.insights.summary.providerCount > 0 &&
+                    ` · ${immunInsights.insights.summary.providerCount} providers`}
+                </CardDescription>
+              )}
+            </CardHeader>
+            <CardContent className="flex flex-1 flex-col space-y-2">
+              {immunInsights && immunInsights.findings.length > 0 ? (
+                immunInsights.findings.slice(0, 2).map((f, i) => (
+                  <div key={i} className="flex gap-2">
+                    {f.severity === "warning" ? (
+                      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                    ) : (
+                      <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-500" />
+                    )}
+                    <p className="text-xs text-muted-foreground line-clamp-2">
+                      {f.text}
+                    </p>
+                  </div>
+                ))
+              ) : immunInsights &&
+                immunInsights.insights.summary.totalImmunizations > 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  {immunInsights.insights.summary.totalImmunizations}{" "}
+                  immunization records on file.
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  No immunization data available yet.
+                </p>
+              )}
+              <div className="flex-1" />
+              <p className="flex items-center gap-1 pt-2 text-xs font-medium text-primary transition-colors group-hover:underline">
+                View all immunization insights
+                <ArrowRight className="h-3 w-3" />
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
     </div>
   );
 }
@@ -272,14 +269,13 @@ function DashboardSkeleton() {
         <Skeleton className="mt-2 h-4 w-40" />
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 8 }).map((_, i) => (
+        {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton key={i} className="h-20" />
         ))}
       </div>
-      <div className="flex gap-2">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-10 w-28 rounded-full" />
-        ))}
+      <div className="grid gap-4 md:grid-cols-2">
+        <Skeleton className="h-44" />
+        <Skeleton className="h-44" />
       </div>
     </div>
   );

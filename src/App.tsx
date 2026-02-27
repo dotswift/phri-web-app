@@ -2,7 +2,6 @@ import { BrowserRouter } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { LazyMotion, domAnimation } from "motion/react";
 import { AuthProvider } from "./context/AuthContext";
-import { SandboxProvider } from "./context/SandboxContext";
 import { ResourceDetailProvider } from "./context/ResourceDetailContext";
 import { AppRouter } from "./router";
 import { Toaster } from "@/components/ui/sonner";
@@ -15,16 +14,14 @@ export default function App() {
       <LazyMotion features={domAnimation}>
         <BrowserRouter>
           <AuthProvider>
-            <SandboxProvider>
-              <ResourceDetailProvider>
-                <ErrorBoundary>
-                  <TooltipProvider delayDuration={300}>
-                    <AppRouter />
-                  </TooltipProvider>
-                </ErrorBoundary>
-                <Toaster />
-              </ResourceDetailProvider>
-            </SandboxProvider>
+            <ResourceDetailProvider>
+              <ErrorBoundary>
+                <TooltipProvider delayDuration={300}>
+                  <AppRouter />
+                </TooltipProvider>
+              </ErrorBoundary>
+              <Toaster />
+            </ResourceDetailProvider>
           </AuthProvider>
         </BrowserRouter>
       </LazyMotion>

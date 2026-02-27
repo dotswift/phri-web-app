@@ -12,11 +12,6 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CitationBadge } from "@/components/shared/CitationBadge";
-import {
-  SandboxActivationCard,
-  SandboxActiveBanner,
-} from "@/components/shared/SandboxBanner";
-import { useSandboxDemo } from "@/context/SandboxContext";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { Pill } from "lucide-react";
@@ -31,7 +26,6 @@ export function MedicationsPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [apiEmpty, setApiEmpty] = useState(false);
-  const { sandboxDemoActive } = useSandboxDemo();
   const { openResourceDetail } = useResourceDetail();
 
   useEffect(() => {
@@ -64,8 +58,8 @@ export function MedicationsPage() {
     fetchMeds();
   }, [fetchMeds]);
 
-  // Use demo data when API is empty and user has opted in
-  const showDemo = apiEmpty && sandboxDemoActive;
+  // Auto-use demo data when API returns empty
+  const showDemo = apiEmpty;
   const displayData = showDemo
     ? filterDemoMedications(DEMO_MEDICATIONS, status, debouncedSearch)
     : data;
@@ -104,7 +98,15 @@ export function MedicationsPage() {
         </div>
       </div>
 
-      {showDemo && <SandboxActiveBanner />}
+      {showDemo && (
+        <div className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
+          <Pill className="h-4 w-4 shrink-0" />
+          <span>
+            Showing demo medication data — this sandbox persona has no real
+            medication records.
+          </span>
+        </div>
+      )}
 
       {loading ? (
         <div className="space-y-3">
@@ -112,8 +114,6 @@ export function MedicationsPage() {
             <Skeleton key={i} className="h-16" />
           ))}
         </div>
-      ) : apiEmpty && !sandboxDemoActive ? (
-        <SandboxActivationCard />
       ) : isEmpty ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <Pill className="h-12 w-12 text-muted-foreground/50" />

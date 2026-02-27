@@ -91,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error, data } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -99,15 +99,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       throw error;
     }
+    // Load state immediately so RootRedirect can navigate without
+    // flashing the LoadingScreen while we wait for the auth listener.
+    await loadUserState(data.session);
   };
 
   const signUp = async (email: string, password: string) => {
     setLoading(true);
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { error, data } = await supabase.auth.signUp({ email, password });
     if (error) {
       setLoading(false);
       throw error;
     }
+    await loadUserState(data.session);
   };
 
   const signInWithGoogle = async () => {

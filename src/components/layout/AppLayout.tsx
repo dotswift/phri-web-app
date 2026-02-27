@@ -1,4 +1,4 @@
-import { Outlet, NavLink, useLocation } from "react-router-dom";
+import { Outlet, NavLink, Link, useLocation } from "react-router-dom";
 import { AnimatePresence } from "motion/react";
 import { PageTransition } from "@/components/shared/PageTransition";
 import {
@@ -79,12 +79,20 @@ export function AppLayout() {
         Skip to main content
       </a>
 
+      {/* Top-left logo */}
+      <Link
+        to="/home"
+        className="fixed left-4 top-4 z-50 text-sm font-bold tracking-tight text-foreground/80 transition-colors hover:text-foreground md:left-6"
+      >
+        PHRI
+      </Link>
+
       <FloatingNav />
 
       <main
         id="main-content"
         tabIndex={-1}
-        className="mx-auto max-w-5xl px-4 pb-20 pt-4 md:px-6 md:pb-6 md:pt-4 outline-none"
+        className="mx-auto max-w-5xl px-4 pb-20 pt-12 md:px-6 md:pb-6 md:pt-12 outline-none"
       >
         <AnimatedOutlet />
       </main>
