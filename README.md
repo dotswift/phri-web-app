@@ -5,39 +5,43 @@ A React/Vite frontend for the PHRI platform — a consent-first personal health 
 ## Quick Start
 
 ### Prerequisites
-- Node.js 18+
-- The PHRI backend deployed (see [backend repo](https://github.com/your-org/phri-backend))
 
-### Setup
+- [Node.js](https://nodejs.org/) 18+ (includes npm)
+- [Git](https://git-scm.com/)
+- A running PHRI backend (see [backend repo](https://github.com/your-org/phri-backend))
+
+### Install & Run
 
 ```bash
-# Install dependencies
+git clone https://github.com/your-org/phri-web-app.git
+cd phri-web-app
 npm install
-
-# Copy environment config
-cp .env.example .env
-# Edit .env with your Supabase + backend URL
-
-# Start dev server
-npm run dev
+cp .env.example .env   # then fill in the values below
+npm run dev             # opens http://localhost:5173
 ```
 
 ### Environment Variables
 
+Copy `.env.example` to `.env` and fill in:
+
 | Variable | Description |
 |---|---|
 | `VITE_API_URL` | Backend API URL (e.g. `https://phri-backend.vercel.app`) |
-| `VITE_SUPABASE_URL` | Supabase project URL |
+| `VITE_SUPABASE_URL` | Your Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | Supabase anon (public) key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service-role key — only needed for E2E tests, never exposed in the frontend |
 
 ### Commands
 
 ```bash
-npm run dev        # Dev server (Vite)
-npm run build      # Type check + production build
-npm run test       # Run tests (Vitest)
-npm run test:watch # Watch mode
-npm run lint       # ESLint
+npm run dev          # Dev server (Vite) — http://localhost:5173
+npm run build        # Type-check + production build
+npm run preview      # Preview the production build locally
+npm run test         # Run unit tests (Vitest)
+npm run test:watch   # Unit tests in watch mode
+npm run test:e2e     # E2E tests (Playwright, headed)
+npm run test:e2e:ci  # E2E tests (Playwright, headless)
+npm run lint         # ESLint
 ```
 
 ---
