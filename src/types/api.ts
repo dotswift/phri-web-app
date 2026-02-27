@@ -202,6 +202,43 @@ export interface ImmunizationsResponse {
   total: number;
 }
 
+export interface ImmunizationEntry {
+  id: string;
+  name: string;
+  date: string | null;
+  status: string | null;
+  source: string | null;
+  citation: Citation;
+}
+
+export interface VaccineGroup {
+  vaccine: string;
+  doses: ImmunizationEntry[];
+  isMultiDose: boolean;
+  providers: string[];
+}
+
+export interface ImmunizationInsightsResponse {
+  findings: InsightFinding[];
+  narrativeSummary: string;
+  insights: {
+    vaccines: VaccineGroup[];
+    summary: {
+      totalImmunizations: number;
+      uniqueVaccines: number;
+      providerCount: number;
+      providers: string[];
+      dateRange: { earliest: string | null; latest: string | null };
+    };
+  };
+  timeline: ImmunizationEntry[];
+  methodology: {
+    description: string;
+    steps: string[];
+    limitations: string[];
+  };
+}
+
 export interface ImmunizationDetail {
   id: string;
   resourceType: string;
