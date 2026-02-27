@@ -45,9 +45,6 @@ const LabResultsPage = lazy(() =>
 const VisitsPage = lazy(() =>
   import("./pages/VisitsPage").then((m) => ({ default: m.VisitsPage })),
 );
-const VitalsPage = lazy(() =>
-  import("./pages/VitalsPage").then((m) => ({ default: m.VitalsPage })),
-);
 const DocumentsPage = lazy(() =>
   import("./pages/DocumentsPage").then((m) => ({
     default: m.DocumentsPage,
@@ -208,14 +205,6 @@ export function AppRouter() {
                 element={
                   <Suspense fallback={<LazyFallback />}>
                     <VisitsPage />
-                  </Suspense>
-                }
-              />
-              <Route
-                path="/records/vitals"
-                element={
-                  <Suspense fallback={<LazyFallback />}>
-                    <VitalsPage />
                   </Suspense>
                 }
               />

@@ -14,7 +14,6 @@ import {
   FlaskConical,
   Syringe,
   Stethoscope,
-  Activity,
   FileText,
 } from "lucide-react";
 
@@ -53,13 +52,6 @@ const CATEGORIES = [
     to: "/records/visits",
     keys: ["encounters", "procedures"] as const,
     resourceType: "Encounter",
-  },
-  {
-    label: "Vitals",
-    icon: Activity,
-    to: "/records/vitals",
-    keys: [] as const,
-    resourceType: "Observation",
   },
   {
     label: "Documents",

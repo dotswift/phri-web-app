@@ -13,7 +13,6 @@ import {
   FlaskConical,
   Syringe,
   Stethoscope,
-  Activity,
   FileText,
   Clock,
   ChevronDown,
@@ -37,7 +36,6 @@ const recordsSubItems = [
   { to: "/records/lab-results", label: "Lab Results", icon: FlaskConical },
   { to: "/records/immunizations", label: "Immunizations", icon: Syringe },
   { to: "/records/visits", label: "Visits", icon: Stethoscope },
-  { to: "/records/vitals", label: "Vitals", icon: Activity },
   { to: "/records/documents", label: "Documents", icon: FileText },
   { to: "/records/timeline", label: "Timeline", icon: Clock },
 ];
