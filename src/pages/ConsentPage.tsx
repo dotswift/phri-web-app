@@ -29,13 +29,14 @@ const CONSENT_ITEMS = [
     label:
       "I understand that my questions and health record excerpts are sent to an external AI (Claude) for chat",
     description:
-      "Only relevant excerpts are sent. You can disable AI mode at any time in Settings.",
+      "Your questions are de-identified (personal identifiers stripped) before processing. Health record excerpts include clinical details (conditions, medications, dates) but not your name, address, or other direct identifiers. You can disable AI mode at any time in Settings.",
   },
   {
     key: "deletionRights" as const,
-    label: "I understand I can delete all my data at any time",
+    label:
+      "I understand I can revoke AI access or delete all my data at any time",
     description:
-      "Visit Settings to permanently delete all records, chat history, and account data.",
+      "Disable AI chat in Settings to stop sending data to the AI provider, or delete all records, chat history, and account data permanently.",
   },
 ];
 
@@ -100,8 +101,16 @@ export function ConsentPage() {
                   <div className="space-y-2">
                     <p>
                       PHRI fetches health records from connected provider
-                      networks and stores them securely to power your insights
+                      networks and stores them in an encrypted database
+                      (AES-256 at rest, TLS in transit) to power your insights
                       dashboard and AI-powered chat.
+                    </p>
+                    <p>
+                      Your health records and chat history are stored in our
+                      encrypted database until you choose to delete them. When
+                      excerpts are sent to our AI provider (Anthropic Claude)
+                      for chat, they are processed in real-time and are not
+                      used to train AI models.
                     </p>
                     <p>
                       You can permanently delete all your data at any time from
@@ -182,8 +191,15 @@ export function ConsentPage() {
                 <ul className="list-inside list-disc space-y-1 text-muted-foreground">
                   <li>Health records fetched and stored securely</li>
                   <li>Excerpts sent to AI for chat features</li>
-                  <li>Full data deletion available at any time</li>
+                  <li>
+                    Full data deletion or AI revocation available at any time
+                  </li>
                 </ul>
+                <p className="mt-2 text-xs text-muted-foreground/80">
+                  Once health record excerpts are sent to the AI provider for
+                  processing, they are subject to the provider's data handling
+                  policies.
+                </p>
               </div>
               <p className="text-xs text-muted-foreground">
                 You can revoke consent and delete all data at any time from
