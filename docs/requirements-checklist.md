@@ -54,6 +54,13 @@ Implement these screens:
 - [x] **Immunizations view:** grouped list + details drawer.
 - [x] **Settings:** Disconnect, **Delete my data**, and "AI mode" toggle.
 - [x] **Citations UX requirement:** anywhere you show clinical facts, provide sources to back them up.
+  - `CitationBadge` component (`components/shared/CitationBadge.tsx`) renders a popover with resourceType, resourceId, excerpt, date, and source for any clinical fact.
+  - **Dashboard:** recent activity items each carry a `citation` object from the backend and render `<CitationBadge>`.
+  - **Timeline:** every timeline item includes a citation; detail drawer (`FhirResourceDetail`) also shows one.
+  - **Medications:** each medication row renders `<CitationBadge>` with its citation.
+  - **Medication Insights:** duplicate occurrences and dosage-change history entries each carry citations, traced back to the underlying FHIR resource.
+  - **Immunizations:** each immunization row renders `<CitationBadge>`.
+  - **Chat:** assistant messages display inline `ChatCitation` references (index-based) linking back to the FHIR resources used for RAG retrieval.
 
 #### Insight features
 
