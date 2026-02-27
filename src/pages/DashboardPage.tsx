@@ -90,13 +90,9 @@ export function DashboardPage() {
       .then(([dash, meds, immun]) => {
         setData(dash);
 
-        // Fall back to demo data when API returns empty or fails entirely
-        const medsEmpty =
-          !meds ||
-          (meds.insights.duplicates.length === 0 &&
-            meds.insights.changes.length === 0 &&
-            meds.findings.length === 0);
-        setMedInsights(medsEmpty ? DEMO_MEDICATION_INSIGHTS : meds);
+        // Fall back to demo data when API has no real medications or fails
+        const hasRealMeds = meds && meds.insights.summary.totalUnique > 0;
+        setMedInsights(hasRealMeds ? meds : DEMO_MEDICATION_INSIGHTS);
 
         setImmunInsights(immun);
       })

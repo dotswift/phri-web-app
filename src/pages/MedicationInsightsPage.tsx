@@ -40,11 +40,8 @@ export function MedicationInsightsPage() {
     api
       .get<MedicationInsightsResponse>("/api/medications/insights")
       .then((result) => {
-        const empty =
-          result.insights.duplicates.length === 0 &&
-          result.insights.changes.length === 0 &&
-          result.findings.length === 0;
-        if (empty) {
+        // Fall back to demo when there are no real medication resources
+        if (result.insights.summary.totalUnique === 0) {
           setData(DEMO_MEDICATION_INSIGHTS);
           setUsingDemo(true);
         } else {
