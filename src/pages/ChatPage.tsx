@@ -14,10 +14,9 @@ import { Send, Plus, MessageSquare, AlertTriangle, Phone, Sparkles, Square } fro
 import type { ChatSession, ChatMessage as ChatMessageType } from "@/types/api";
 import { Link } from "react-router-dom";
 
-const SUGGESTED_PROMPTS = [
+const DEFAULT_PROMPTS = [
   "What conditions do I have?",
   "Explain my latest lab results",
-  "Do any of my medications interact?",
   "Am I up to date on vaccines?",
 ];
 
@@ -38,9 +37,10 @@ export function ChatPage() {
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [aiDisabled, setAiDisabled] = useState(false);
   const [crisisDetected, setCrisisDetected] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>(DEFAULT_PROMPTS);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load sessions
+  // Load sessions and suggestions in parallel
   useEffect(() => {
     api
       .get<ChatSession[]>("/api/chat/sessions")
@@ -51,6 +51,17 @@ export function ChatPage() {
         }
       })
       .finally(() => setSessionsLoading(false));
+
+    api
+      .get<{ suggestions: Array<{ text: string }> }>("/api/chat/suggestions")
+      .then((result) => {
+        if (result.suggestions.length > 0) {
+          setSuggestions(result.suggestions.map((s) => s.text));
+        }
+      })
+      .catch(() => {
+        // Keep defaults on error
+      });
   }, []);
 
   // Auto-scroll
@@ -217,7 +228,7 @@ export function ChatPage() {
 
                 {/* Suggested prompts */}
                 <div className="flex flex-wrap justify-center gap-2">
-                  {SUGGESTED_PROMPTS.map((prompt) => (
+                  {suggestions.map((prompt) => (
                     <button
                       key={prompt}
                       onClick={() => handleSend(prompt)}
