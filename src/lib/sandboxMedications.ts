@@ -249,6 +249,82 @@ export const DEMO_MEDICATIONS: MedicationsResponse = {
 };
 
 export const DEMO_MEDICATION_INSIGHTS: MedicationInsightsResponse = {
+  findings: [
+    {
+      text: "Metformin 1000mg is actively prescribed by two different providers (Dr. Chen at Metro Internal Medicine and Dr. Park at Lakeside Cardiology). If these are not coordinated, you may want to discuss with your care team to avoid duplicate doses.",
+      severity: "warning",
+      citations: [
+        {
+          resourceType: "MedicationRequest",
+          resourceId: "demo-med-2",
+          excerpt: "Metformin hydrochloride 1000 mg oral tablet [RxNorm: 861004]",
+          date: "2025-06-20",
+          source: "Dr. Sarah Chen — Metro Internal Medicine",
+        },
+        {
+          resourceType: "MedicationRequest",
+          resourceId: "demo-med-3",
+          excerpt: "Metformin hydrochloride 1000 mg oral tablet [RxNorm: 861004]",
+          date: "2025-07-10",
+          source: "Dr. James Park — Lakeside Cardiology",
+        },
+      ],
+    },
+    {
+      text: "Three of your medications (Metformin, Lisinopril, Atorvastatin) have had their dosages increased over the past 18 months, suggesting your providers have been actively adjusting your treatment plan.",
+      severity: "info",
+      citations: [
+        {
+          resourceType: "MedicationRequest",
+          resourceId: "demo-med-2",
+          excerpt: "Metformin hydrochloride 1000 mg oral tablet [RxNorm: 861004]",
+          date: "2025-06-20",
+          source: "Dr. Sarah Chen — Metro Internal Medicine",
+        },
+        {
+          resourceType: "MedicationRequest",
+          resourceId: "demo-med-5",
+          excerpt: "Lisinopril 10 mg oral tablet [RxNorm: 314076]",
+          date: "2025-10-02",
+          source: "Dr. Sarah Chen — Metro Internal Medicine",
+        },
+        {
+          resourceType: "MedicationRequest",
+          resourceId: "demo-med-7",
+          excerpt: "Atorvastatin calcium 40 mg oral tablet [RxNorm: 617311]",
+          date: "2025-09-15",
+          source: "Dr. James Park — Lakeside Cardiology",
+        },
+      ],
+    },
+    {
+      text: "You are currently taking 9 active medications managed across 4 different providers. Keeping a unified medication list to share at each visit can help ensure coordinated care.",
+      severity: "info",
+      citations: [],
+    },
+    {
+      text: "Your Metformin dose was doubled from 500mg to 1000mg in June 2025, which is a common adjustment for blood sugar management. The earlier 500mg prescription was stopped when the higher dose started.",
+      severity: "info",
+      citations: [
+        {
+          resourceType: "MedicationRequest",
+          resourceId: "demo-med-1",
+          excerpt: "Metformin hydrochloride 500 mg oral tablet [RxNorm: 860975]",
+          date: "2024-06-15",
+          source: "Dr. Sarah Chen — Metro Internal Medicine",
+        },
+        {
+          resourceType: "MedicationRequest",
+          resourceId: "demo-med-2",
+          excerpt: "Metformin hydrochloride 1000 mg oral tablet [RxNorm: 861004]",
+          date: "2025-06-20",
+          source: "Dr. Sarah Chen — Metro Internal Medicine",
+        },
+      ],
+    },
+  ],
+  narrativeSummary:
+    "Your medication records show 11 unique medications managed across 4 providers, with 9 currently active. Several medications have been dose-adjusted over time, and one medication (Metformin) appears to be prescribed by two different providers, which may warrant a coordination check with your care team.",
   insights: {
     duplicates: [
       {
@@ -283,6 +359,11 @@ export const DEMO_MEDICATION_INSIGHTS: MedicationInsightsResponse = {
             },
           },
         ],
+        providers: [
+          "Dr. Sarah Chen — Metro Internal Medicine",
+          "Dr. James Park — Lakeside Cardiology",
+        ],
+        isMultiProvider: true,
       },
       {
         drug: "Lisinopril",
@@ -314,6 +395,8 @@ export const DEMO_MEDICATION_INSIGHTS: MedicationInsightsResponse = {
             },
           },
         ],
+        providers: ["Dr. Sarah Chen — Metro Internal Medicine"],
+        isMultiProvider: false,
       },
       {
         drug: "Atorvastatin",
@@ -347,6 +430,8 @@ export const DEMO_MEDICATION_INSIGHTS: MedicationInsightsResponse = {
             },
           },
         ],
+        providers: ["Dr. James Park — Lakeside Cardiology"],
+        isMultiProvider: false,
       },
     ],
     changes: [
@@ -396,6 +481,7 @@ export const DEMO_MEDICATION_INSIGHTS: MedicationInsightsResponse = {
             },
           },
         ],
+        summary: "Dose increased from 500mg to 1000mg",
       },
       {
         drug: "Lisinopril",
@@ -440,6 +526,7 @@ export const DEMO_MEDICATION_INSIGHTS: MedicationInsightsResponse = {
             },
           },
         ],
+        summary: "Dose increased from 5mg to 10mg",
       },
       {
         drug: "Atorvastatin",
@@ -487,28 +574,37 @@ export const DEMO_MEDICATION_INSIGHTS: MedicationInsightsResponse = {
             },
           },
         ],
+        summary: "Dose increased from 20mg to 40mg",
       },
     ],
     summary: {
       totalUnique: 11,
       totalActive: 8,
       totalStopped: 3,
+      providerCount: 4,
+      providers: [
+        "Dr. Sarah Chen — Metro Internal Medicine",
+        "Dr. James Park — Lakeside Cardiology",
+        "Dr. Maria Santos — Behavioral Health Associates",
+        "Dr. Lisa Nguyen — Urgent Care Associates",
+      ],
     },
   },
   methodology: {
     description:
-      "Medication insights are generated by analyzing MedicationRequest FHIR resources across all connected provider sources. Medications are matched by RxNorm code and normalized drug name to detect duplicates and track dosage changes over time.",
+      "Medication insights are generated in two phases: (1) deterministic analysis groups medications by identity, detects duplicates across providers, and tracks dosage changes; (2) AI-powered interpretation generates plain-language findings from the structured data, with citations traced to source records.",
     steps: [
       "Extract all MedicationRequest resources from consolidated patient record",
       "Normalize medication names and map to RxNorm codes where available",
-      "Group medications by normalized drug identity to detect duplicates across sources",
+      "Group medications by normalized drug identity to detect duplicates across sources, flagging cross-provider overlaps",
       "Order grouped records chronologically to identify dosage and status changes",
-      "Flag potential interactions and summarize active medication counts",
+      "Generate AI-powered plain-language findings from the structured analysis (Claude)",
     ],
     limitations: [
       "Duplicate detection relies on RxNorm codes; medications without codes may not be matched",
       "Dosage change tracking requires structured sig data; free-text instructions may be missed",
       "Over-the-counter medications and supplements are only included if recorded by a provider",
+      "AI-generated summaries may occasionally misinterpret context; always verify against the cited source records",
     ],
   },
 };

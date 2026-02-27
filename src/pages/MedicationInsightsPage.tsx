@@ -22,8 +22,15 @@ import {
 import { useSandboxDemo } from "@/context/SandboxContext";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { Sparkles } from "lucide-react";
-import { MedicationDosageChart } from "@/components/charts/MedicationDosageChart";
+import {
+  Sparkles,
+  AlertTriangle,
+  Info,
+  ArrowUp,
+  ArrowDown,
+  Users,
+} from "lucide-react";
+import { MedicationChangeSparkline } from "@/components/charts/MedicationChangeSparkline";
 import { useResourceDetail } from "@/context/ResourceDetailContext";
 import type { MedicationInsightsResponse } from "@/types/api";
 import { DEMO_MEDICATION_INSIGHTS } from "@/lib/sandboxMedications";
@@ -67,7 +74,7 @@ export function MedicationInsightsPage() {
 
   const showDemo = apiEmpty && sandboxDemoActive;
   const displayData = showDemo ? DEMO_MEDICATION_INSIGHTS : data;
-  const { insights, methodology } = displayData;
+  const { findings, narrativeSummary, insights, methodology } = displayData;
   const isEmpty =
     insights.duplicates.length === 0 && insights.changes.length === 0;
 
@@ -77,29 +84,61 @@ export function MedicationInsightsPage() {
 
       {showDemo && <SandboxActiveBanner />}
 
-      {/* Summary stats */}
-      <div className="grid gap-3 sm:grid-cols-3">
+      {/* Compact stat row */}
+      <p className="text-sm text-muted-foreground">
+        {insights.summary.totalUnique} medications · {insights.summary.totalActive} active
+        {insights.summary.totalStopped > 0 &&
+          ` · ${insights.summary.totalStopped} stopped`}
+        {insights.summary.providerCount > 0 &&
+          ` · ${insights.summary.providerCount} providers`}
+      </p>
+
+      {/* Key Findings hero section (LLM-powered) */}
+      {findings.length > 0 && (
         <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-3xl font-bold">{insights.summary.totalUnique}</p>
-            <p className="text-sm text-muted-foreground">Unique Medications</p>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Key Findings
+            </CardTitle>
+            {narrativeSummary && (
+              <CardDescription className="text-sm">
+                {narrativeSummary}
+              </CardDescription>
+            )}
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {findings.map((finding, i) => (
+              <div
+                key={i}
+                className={`flex gap-3 rounded-md border p-3 ${
+                  finding.severity === "warning"
+                    ? "border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/20"
+                    : "border-border bg-muted/30"
+                }`}
+              >
+                <div className="mt-0.5 shrink-0">
+                  {finding.severity === "warning" ? (
+                    <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  ) : (
+                    <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  )}
+                </div>
+                <div className="min-w-0 space-y-1.5">
+                  <p className="text-sm leading-relaxed">{finding.text}</p>
+                  {finding.citations.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {finding.citations.map((c, ci) => (
+                        <CitationBadge key={ci} citation={c} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-3xl font-bold">{insights.summary.totalActive}</p>
-            <p className="text-sm text-muted-foreground">Active</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-3xl font-bold">
-              {insights.summary.totalStopped}
-            </p>
-            <p className="text-sm text-muted-foreground">Stopped</p>
-          </CardContent>
-        </Card>
-      </div>
+      )}
 
       {apiEmpty && !sandboxDemoActive ? (
         <SandboxActivationCard />
@@ -125,10 +164,30 @@ export function MedicationInsightsPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {insights.duplicates.map((group) => (
-                  <div key={group.drug} className="rounded-md border p-3">
-                    <p className="font-medium">{group.drug}</p>
+                  <div
+                    key={group.drug}
+                    className={`rounded-md border p-3 ${
+                      group.isMultiProvider
+                        ? "border-amber-200 dark:border-amber-900/50"
+                        : ""
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">{group.drug}</p>
+                      {group.isMultiProvider && (
+                        <Badge
+                          variant="outline"
+                          className="border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-400"
+                        >
+                          <Users className="mr-1 h-3 w-3" />
+                          Multiple Providers
+                        </Badge>
+                      )}
+                    </div>
                     <p className="mb-2 text-xs text-muted-foreground">
                       Appears in {group.occurrences.length} records
+                      {group.isMultiProvider &&
+                        ` across ${group.providers.join(", ")}`}
                     </p>
                     <div className="space-y-2">
                       {group.occurrences.map((occ) => (
@@ -157,13 +216,6 @@ export function MedicationInsightsPage() {
             </Card>
           )}
 
-          {/* Dosage changes chart */}
-          {insights.changes.length > 0 && (
-            <Card className="p-4">
-              <MedicationDosageChart changes={insights.changes} />
-            </Card>
-          )}
-
           {/* Dosage changes detail */}
           {insights.changes.length > 0 && (
             <Card>
@@ -174,49 +226,70 @@ export function MedicationInsightsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {insights.changes.map((group) => (
-                  <div key={group.drug} className="rounded-md border p-3">
-                    <p className="mb-3 font-medium">{group.drug}</p>
-                    <div className="relative ml-3 border-l-2 border-muted pl-4">
-                      {group.history.map((entry) => (
-                        <div
-                          key={entry.id}
-                          className={`relative mb-4 last:mb-0 ${showDemo ? "" : "cursor-pointer"}`}
-                          onClick={showDemo ? undefined : () => openResourceDetail(entry.id, "/api/medications")}
-                        >
-                          <div className="absolute -left-[1.35rem] top-1 h-3 w-3 rounded-full border-2 border-primary bg-background" />
-                          <div className="rounded p-2 hover:bg-accent">
-                            <div className="flex items-center gap-2">
-                              {entry.date && (
-                                <span className="text-xs font-medium">
-                                  {new Date(entry.date).toLocaleDateString()}
-                                </span>
-                              )}
-                              {entry.status && (
-                                <Badge
-                                  variant={
-                                    entry.status === "active"
-                                      ? "default"
-                                      : "secondary"
-                                  }
-                                  className="text-xs"
-                                >
-                                  {entry.status}
-                                </Badge>
-                              )}
-                            </div>
-                            {entry.dosage && (
-                              <p className="text-sm">{entry.dosage}</p>
+                {insights.changes.map((group) => {
+                  const isIncrease = group.summary.includes("increased");
+                  const isDecrease = group.summary.includes("decreased");
+
+                  return (
+                    <div key={group.drug} className="rounded-md border p-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{group.drug}</p>
+                            {isIncrease && (
+                              <ArrowUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                             )}
-                            <div className="mt-1">
-                              <CitationBadge citation={entry.citation} />
+                            {isDecrease && (
+                              <ArrowDown className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {group.summary}
+                          </p>
+                        </div>
+                        <MedicationChangeSparkline history={group.history} />
+                      </div>
+                      <div className="relative ml-3 mt-3 border-l-2 border-muted pl-4">
+                        {group.history.map((entry) => (
+                          <div
+                            key={entry.id + entry.date}
+                            className={`relative mb-4 last:mb-0 ${showDemo ? "" : "cursor-pointer"}`}
+                            onClick={showDemo ? undefined : () => openResourceDetail(entry.id, "/api/medications")}
+                          >
+                            <div className="absolute -left-[1.35rem] top-1 h-3 w-3 rounded-full border-2 border-primary bg-background" />
+                            <div className="rounded p-2 hover:bg-accent">
+                              <div className="flex items-center gap-2">
+                                {entry.date && (
+                                  <span className="text-xs font-medium">
+                                    {new Date(entry.date).toLocaleDateString()}
+                                  </span>
+                                )}
+                                {entry.status && (
+                                  <Badge
+                                    variant={
+                                      entry.status === "active"
+                                        ? "default"
+                                        : "secondary"
+                                    }
+                                    className="text-xs"
+                                  >
+                                    {entry.status}
+                                  </Badge>
+                                )}
+                              </div>
+                              {entry.dosage && (
+                                <p className="text-sm">{entry.dosage}</p>
+                              )}
+                              <div className="mt-1">
+                                <CitationBadge citation={entry.citation} />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </CardContent>
             </Card>
           )}
@@ -252,7 +325,6 @@ export function MedicationInsightsPage() {
           </AccordionContent>
         </AccordionItem>
       </Accordion>
-
     </div>
   );
 }

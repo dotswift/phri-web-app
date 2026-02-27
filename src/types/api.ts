@@ -142,6 +142,8 @@ export interface DuplicateOccurrence {
 export interface DuplicateGroup {
   drug: string;
   occurrences: DuplicateOccurrence[];
+  providers: string[];
+  isMultiProvider: boolean;
 }
 
 export interface ChangeEntry {
@@ -155,9 +157,18 @@ export interface ChangeEntry {
 export interface ChangeGroup {
   drug: string;
   history: ChangeEntry[];
+  summary: string;
+}
+
+export interface InsightFinding {
+  text: string;
+  severity: "info" | "warning";
+  citations: Citation[];
 }
 
 export interface MedicationInsightsResponse {
+  findings: InsightFinding[];
+  narrativeSummary: string;
   insights: {
     duplicates: DuplicateGroup[];
     changes: ChangeGroup[];
@@ -165,6 +176,8 @@ export interface MedicationInsightsResponse {
       totalUnique: number;
       totalActive: number;
       totalStopped: number;
+      providerCount: number;
+      providers: string[];
     };
   };
   methodology: {
