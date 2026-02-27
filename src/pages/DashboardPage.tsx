@@ -18,10 +18,7 @@ import { FHIR_RESOURCE_COLORS } from "@/lib/colors";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { useSandboxDemo } from "@/context/SandboxContext";
-import {
-  SandboxActivationCard,
-  SandboxActiveBanner,
-} from "@/components/shared/SandboxBanner";
+import { DEMO_MEDICATIONS } from "@/lib/sandboxMedications";
 import type { DashboardResponse } from "@/types/api";
 import {
   Clock,
@@ -118,7 +115,7 @@ const QUICK_ACTIONS = [
 export function DashboardPage() {
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const { sandboxDemoActive } = useSandboxDemo();
+  const { sandboxDemoActive, activateSandboxDemo } = useSandboxDemo();
 
   useEffect(() => {
     api
@@ -160,6 +157,43 @@ export function DashboardPage() {
       <AnimatedList className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {SUMMARY_CARDS.map(({ key, label, icon: Icon, link, resourceType }) => {
           const color = FHIR_RESOURCE_COLORS[resourceType];
+
+          // Medications tile: show demo count or activation prompt when empty
+          if (key === "medications" && data.summary.medications === 0) {
+            const demoCount =
+              DEMO_MEDICATIONS.active.length + DEMO_MEDICATIONS.other.length;
+
+            if (sandboxDemoActive) {
+              return (
+                <Link key={key} to={link}>
+                  <KpiCard
+                    title={label}
+                    value={demoCount}
+                    icon={<Icon className="h-5 w-5" style={{ color: color?.badge }} />}
+                    accentColor={color?.badge}
+                    description="Demo data"
+                  />
+                </Link>
+              );
+            }
+
+            return (
+              <button
+                key={key}
+                onClick={activateSandboxDemo}
+                className="text-left"
+              >
+                <KpiCard
+                  title={label}
+                  value={0}
+                  icon={<Icon className="h-5 w-5" style={{ color: color?.badge }} />}
+                  accentColor={color?.badge}
+                  description="Activate demo data →"
+                />
+              </button>
+            );
+          }
+
           return (
             <Link key={key} to={link}>
               <KpiCard
@@ -172,14 +206,6 @@ export function DashboardPage() {
           );
         })}
       </AnimatedList>
-
-      {/* Sandbox demo prompt for empty medications */}
-      {data.summary.medications === 0 &&
-        (sandboxDemoActive ? (
-          <SandboxActiveBanner />
-        ) : (
-          <SandboxActivationCard />
-        ))}
 
       {/* Quick action pills */}
       <div className="flex flex-wrap gap-2">
