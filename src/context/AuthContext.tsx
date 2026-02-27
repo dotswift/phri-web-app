@@ -2,6 +2,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   useCallback,
   type ReactNode,
@@ -31,9 +32,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Ref tracks whether we have fully loaded state, so the onAuthStateChange
+  // closure (which only runs once) can read the latest value.
+  const stateLoadedRef = useRef(false);
+
   const loadUserState = useCallback(
     async (session: Session | null, silent = false) => {
       if (!session) {
+        stateLoadedRef.current = false;
         setUser(null);
         setConsent(null);
         setPatient(null);
@@ -58,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setConsent(consentRes);
         setPatient(patientRes);
+        stateLoadedRef.current = !!(consentRes && patientRes);
       } catch {
         // If we can't load state, user can still navigate to appropriate pages
       } finally {
@@ -79,10 +86,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       // Skip the INITIAL_SESSION event — getSession() already handles it.
       // Only react to subsequent auth changes (sign-in, sign-out, token refresh).
       if (!initialised) return;
+
+      // Sign-out: clear state immediately without hitting APIs
+      if (event === 'SIGNED_OUT' || !session) {
+        setUser(null);
+        setConsent(null);
+        setPatient(null);
+        setLoading(false);
+        return;
+      }
+
+      // Token refreshes (e.g. on tab re-focus) shouldn't re-fetch state we
+      // already have — doing so sets loading=true, which remounts route guards
+      // and destroys in-memory React state (chat history, scroll position, etc.)
+      if (event === 'TOKEN_REFRESHED' && stateLoadedRef.current) {
+        setUser(session.user);
+        return;
+      }
+
       loadUserState(session);
     });
 
@@ -123,6 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    stateLoadedRef.current = false;
     await supabase.auth.signOut();
     setUser(null);
     setConsent(null);
