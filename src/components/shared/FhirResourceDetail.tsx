@@ -7,6 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { CitationBadge } from "./CitationBadge";
+import { DocumentPreview } from "./DocumentPreview";
 import type { TimelineDetail } from "@/types/api";
 
 interface FhirResourceDetailProps {
@@ -114,6 +115,11 @@ export function FhirResourceDetail({ detail }: FhirResourceDetailProps) {
             ))}
         </div>
       )}
+
+      <DocumentPreview
+        resourceId={detail.id}
+        resourceType={detail.resourceType}
+      />
 
       <Collapsible>
         <CollapsibleTrigger asChild>

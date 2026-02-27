@@ -257,6 +257,11 @@ export interface DocumentUrlResponse {
   url: string;
 }
 
+export interface DocumentForResourceResponse {
+  fileName: string | null;
+  description: string | null;
+}
+
 // --- Settings ---
 export interface SettingsResponse {
   aiModeEnabled: boolean;
