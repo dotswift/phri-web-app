@@ -1,9 +1,8 @@
-import { Shield, Lock, BadgeCheck } from "lucide-react";
+import { Shield, Lock } from "lucide-react";
 
 const BADGES = [
   { icon: Shield, label: "HIPAA Compliant" },
   { icon: Lock, label: "256-bit Encryption" },
-  { icon: BadgeCheck, label: "SOC 2 Certified" },
 ] as const;
 
 export function TrustBadges() {
