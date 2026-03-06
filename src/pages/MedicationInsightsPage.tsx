@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -15,8 +14,7 @@ import {
 } from "@/components/ui/accordion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CitationBadge } from "@/components/shared/CitationBadge";
-import { api } from "@/lib/api";
-import { toast } from "sonner";
+import { useHealthData } from "@/context/HealthDataContext";
 import {
   Sparkles,
   AlertTriangle,
@@ -27,22 +25,12 @@ import {
 } from "lucide-react";
 import { MedicationChangeSparkline } from "@/components/charts/MedicationChangeSparkline";
 import { useResourceDetail } from "@/context/ResourceDetailContext";
-import type { MedicationInsightsResponse } from "@/types/api";
 
 export function MedicationInsightsPage() {
   const { openResourceDetail } = useResourceDetail();
-  const [data, setData] = useState<MedicationInsightsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { medInsights: data, initialLoading } = useHealthData();
 
-  useEffect(() => {
-    api
-      .get<MedicationInsightsResponse>("/api/medications/insights")
-      .then(setData)
-      .catch((err) => toast.error(err.message))
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) {
+  if (initialLoading) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-8 w-64" />

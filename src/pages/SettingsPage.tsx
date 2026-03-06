@@ -25,6 +25,7 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { useHealthData } from "@/context/HealthDataContext";
 import { useUpload } from "@/context/UploadContext";
 import { toast } from "sonner";
 import {
@@ -52,6 +53,7 @@ export function SettingsPage() {
   const [dob, setDob] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user, signOut, refreshUserState } = useAuth();
+  const { refresh: refreshHealthData } = useHealthData();
   const navigate = useNavigate();
   const {
     state: uploadState,
@@ -79,6 +81,7 @@ export function SettingsPage() {
       await api.post("/api/settings/wipe-records");
       await refreshUserState();
       await fetchSettings();
+      refreshHealthData();
       toast.success("All records wiped");
     } catch (err) {
       toast.error(
@@ -132,6 +135,7 @@ export function SettingsPage() {
     resetUpload();
     fetchSettings();
     refreshUserState();
+    refreshHealthData();
     toast.success(`Extracted ${result?.resourceCount ?? 0} health records`);
   };
 

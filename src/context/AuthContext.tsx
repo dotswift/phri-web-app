@@ -2,6 +2,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   useCallback,
   type ReactNode,
@@ -16,6 +17,7 @@ interface AuthState {
   consent: Consent | null;
   patient: Patient | null;
   loading: boolean;
+  initialLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
@@ -30,10 +32,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [consent, setConsent] = useState<Consent | null>(null);
   const [patient, setPatient] = useState<Patient | null>(null);
   const [loading, setLoading] = useState(true);
+  const stateLoadedRef = useRef(false);
+  const initialLoadDoneRef = useRef(false);
 
   const loadUserState = useCallback(
     async (session: Session | null, silent = false) => {
       if (!session) {
+        stateLoadedRef.current = false;
+        initialLoadDoneRef.current = true;
         setUser(null);
         setConsent(null);
         setPatient(null);
@@ -58,9 +64,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setConsent(consentRes);
         setPatient(patientRes);
+        stateLoadedRef.current = !!(consentRes && patientRes);
       } catch {
         // If we can't load state, user can still navigate to appropriate pages
       } finally {
+        initialLoadDoneRef.current = true;
         if (!silent) setLoading(false);
       }
     },
@@ -79,10 +87,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       // Skip the INITIAL_SESSION event — getSession() already handles it.
-      // Only react to subsequent auth changes (sign-in, sign-out, token refresh).
       if (!initialised) return;
+
+      // Sign-out: clear state immediately without hitting APIs
+      if (event === 'SIGNED_OUT' || !session) {
+        stateLoadedRef.current = false;
+        setUser(null);
+        setConsent(null);
+        setPatient(null);
+        setLoading(false);
+        return;
+      }
+
+      // Skip re-loading state we already have. This prevents:
+      // - Double-load after signIn/signUp (SIGNED_IN fires from listener too)
+      // - Unnecessary reload on token refresh (tab re-focus)
+      if (stateLoadedRef.current) {
+        setUser(session.user);
+        return;
+      }
+
       loadUserState(session);
     });
 
@@ -123,6 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    stateLoadedRef.current = false;
     await supabase.auth.signOut();
     setUser(null);
     setConsent(null);
@@ -136,6 +163,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await loadUserState(session, true);
   };
 
+  const initialLoading = loading && !initialLoadDoneRef.current;
+
   return (
     <AuthContext.Provider
       value={{
@@ -143,6 +172,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         consent,
         patient,
         loading,
+        initialLoading,
         signIn,
         signUp,
         signInWithGoogle,
