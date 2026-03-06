@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
   Card,
@@ -19,15 +19,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { DataProvenance } from "@/components/shared/DataProvenance";
-import { api } from "@/lib/api";
 import { useUpload } from "@/context/UploadContext";
 import { useAuth } from "@/context/AuthContext";
+import { useHealthData } from "@/context/HealthDataContext";
 import { toast } from "sonner";
-import type {
-  DashboardResponse,
-  MedicationInsightsResponse,
-  ImmunizationInsightsResponse,
-} from "@/types/api";
 import {
   Clock,
   Pill,
@@ -87,41 +82,19 @@ const NAV_CARDS = [
 ];
 
 export function DashboardPage() {
-  const [data, setData] = useState<DashboardResponse | null>(null);
-  const [medInsights, setMedInsights] =
-    useState<MedicationInsightsResponse | null>(null);
-  const [immunInsights, setImmunInsights] =
-    useState<ImmunizationInsightsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [fetchKey, setFetchKey] = useState(0);
+  const {
+    dashboard: data,
+    medInsights,
+    immunInsights,
+    initialLoading,
+    refresh,
+  } = useHealthData();
 
-  useEffect(() => {
-    setLoading(true);
-    Promise.all([
-      api.get<DashboardResponse>("/api/dashboard"),
-      api
-        .get<MedicationInsightsResponse>("/api/medications/insights")
-        .catch(() => null),
-      api
-        .get<ImmunizationInsightsResponse>("/api/immunizations/insights")
-        .catch(() => null),
-    ])
-      .then(([dash, meds, immun]) => {
-        setData(dash);
-        setMedInsights(meds);
-        setImmunInsights(immun);
-      })
-      .catch((err) => toast.error(err.message))
-      .finally(() => setLoading(false));
-  }, [fetchKey]);
-
-  const refetch = () => setFetchKey((k) => k + 1);
-
-  if (loading) return <DashboardSkeleton />;
+  if (initialLoading) return <DashboardSkeleton />;
   if (!data) return null;
 
   if (data.summary.totalResources === 0) {
-    return <DashboardEmpty persona={data.patient.sandboxPersona} onDataAdded={refetch} />;
+    return <DashboardEmpty persona={data.patient.sandboxPersona} onDataAdded={refresh} />;
   }
 
   const firstName = data.patient.sandboxPersona?.split(" ")[0] ?? "there";

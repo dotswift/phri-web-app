@@ -2,6 +2,7 @@ import { BrowserRouter } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { LazyMotion, domAnimation } from "motion/react";
 import { AuthProvider } from "./context/AuthContext";
+import { HealthDataProvider } from "./context/HealthDataContext";
 import { ResourceDetailProvider } from "./context/ResourceDetailContext";
 import { UploadProvider } from "./context/UploadContext";
 import { AppRouter } from "./router";
@@ -15,16 +16,18 @@ export default function App() {
       <LazyMotion features={domAnimation}>
         <BrowserRouter>
           <AuthProvider>
-            <UploadProvider>
-              <ResourceDetailProvider>
+            <HealthDataProvider>
+              <UploadProvider>
+                <ResourceDetailProvider>
                 <ErrorBoundary>
                   <TooltipProvider delayDuration={300}>
                     <AppRouter />
                   </TooltipProvider>
                 </ErrorBoundary>
                 <Toaster />
-              </ResourceDetailProvider>
-            </UploadProvider>
+                </ResourceDetailProvider>
+              </UploadProvider>
+            </HealthDataProvider>
           </AuthProvider>
         </BrowserRouter>
       </LazyMotion>

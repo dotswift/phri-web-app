@@ -61,29 +61,29 @@ function LazyFallback() {
 }
 
 function PublicOnly() {
-  const { user, loading } = useAuth();
-  if (loading) return <LoadingScreen />;
+  const { user, initialLoading } = useAuth();
+  if (initialLoading) return <LoadingScreen />;
   if (user) return <Navigate to="/" replace />;
   return <Outlet />;
 }
 
 function RequireAuth() {
-  const { user, loading } = useAuth();
-  if (loading) return <LoadingScreen />;
+  const { user, initialLoading } = useAuth();
+  if (initialLoading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
   return <Outlet />;
 }
 
 function RequireConsent() {
-  const { consent, loading } = useAuth();
-  if (loading) return <LoadingScreen />;
+  const { consent, initialLoading } = useAuth();
+  if (initialLoading) return <LoadingScreen />;
   if (!consent) return <Navigate to="/consent" replace />;
   return <Outlet />;
 }
 
 function RequirePatient() {
-  const { patient, loading } = useAuth();
-  if (loading) return <LoadingScreen />;
+  const { patient, initialLoading } = useAuth();
+  if (initialLoading) return <LoadingScreen />;
   if (!patient) return <Navigate to="/connect" replace />;
   if (
     patient.status === "querying" ||
@@ -96,9 +96,9 @@ function RequirePatient() {
 }
 
 function RootRedirect() {
-  const { user, consent, patient, loading } = useAuth();
+  const { user, consent, patient, initialLoading } = useAuth();
 
-  if (loading) return <LoadingScreen />;
+  if (initialLoading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
   if (!consent) return <Navigate to="/consent" replace />;
   if (!patient) return <Navigate to="/connect" replace />;

@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -16,8 +16,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { CitationBadge } from "@/components/shared/CitationBadge";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { api } from "@/lib/api";
-import { toast } from "sonner";
+import { useHealthData } from "@/context/HealthDataContext";
 import {
   Syringe,
   Sparkles,
@@ -25,22 +24,10 @@ import {
   Info,
 } from "lucide-react";
 import { useResourceDetail } from "@/context/ResourceDetailContext";
-import type { ImmunizationInsightsResponse } from "@/types/api";
 
 export function ImmunizationsPage() {
-  const [data, setData] = useState<ImmunizationInsightsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { immunInsights: data, initialLoading } = useHealthData();
   const { openResourceDetail } = useResourceDetail();
-
-  useEffect(() => {
-    api
-      .get<ImmunizationInsightsResponse>("/api/immunizations/insights")
-      .then(setData)
-      .catch((err) =>
-        toast.error(err instanceof Error ? err.message : "Failed to load immunizations")
-      )
-      .finally(() => setLoading(false));
-  }, []);
 
   // Group timeline by year (newest first)
   const grouped = useMemo(() => {
@@ -58,7 +45,7 @@ export function ImmunizationsPage() {
     );
   }, [data]);
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-8 w-64" />

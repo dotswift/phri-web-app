@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { streamUpload } from "../lib/api";
+import { streamUpload, streamResume, api } from "../lib/api";
 import type { UploadSSEEvent } from "../types/api";
 
 export interface UploadProgress {
@@ -17,12 +17,90 @@ export interface UploadResult {
 
 type UploadState = "idle" | "uploading" | "complete" | "error";
 
+const MAX_RESUME_RETRIES = 3;
+
+/**
+ * Fire-and-forget post-processing: enrich + embed in parallel.
+ * Both are non-critical — enrichment has Claude fallback text,
+ * embeddings have lazy generation in chat.service.ts.
+ */
+function triggerPostProcessing(uploadId: string) {
+  api.post(`/api/upload/${uploadId}/enrich`).catch(() => {});
+  api.post(`/api/upload/${uploadId}/embed`).catch(() => {});
+}
+
 export function useDocumentUpload() {
   const [state, setState] = useState<UploadState>("idle");
   const [progress, setProgress] = useState<UploadProgress | null>(null);
   const [result, setResult] = useState<UploadResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const uploadIdRef = useRef<string | null>(null);
+  const retriesRef = useRef(0);
+
+  const handleEvent = useCallback((event: UploadSSEEvent) => {
+    switch (event.type) {
+      case "upload_created":
+        uploadIdRef.current = event.uploadId;
+        break;
+      case "resumed":
+        uploadIdRef.current = event.uploadId;
+        break;
+      case "progress":
+        setProgress({
+          step: event.step,
+          totalSteps: event.totalSteps,
+          description: event.description,
+          percent: event.percent,
+        });
+        break;
+      case "complete":
+        setResult({
+          uploadId: event.uploadId,
+          resourceCount: event.resourceCount,
+          resources: event.resources,
+        });
+        setState("complete");
+        triggerPostProcessing(event.uploadId);
+        break;
+      case "error":
+        setError(event.error);
+        setState("error");
+        break;
+    }
+  }, []);
+
+  const attemptResume = useCallback(
+    async (id: string) => {
+      retriesRef.current++;
+      setState("uploading");
+
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      try {
+        await streamResume(id, handleEvent, controller.signal);
+      } catch (err) {
+        if ((err as Error).name === "AbortError") {
+          setState("idle");
+          return;
+        }
+        // If still retryable, try again
+        if (retriesRef.current < MAX_RESUME_RETRIES && uploadIdRef.current) {
+          console.warn(
+            `[useDocumentUpload] Resume attempt ${retriesRef.current} failed, retrying...`,
+          );
+          await attemptResume(uploadIdRef.current);
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Upload failed");
+        setState("error");
+      } finally {
+        abortRef.current = null;
+      }
+    },
+    [handleEvent],
+  );
 
   const upload = useCallback(
     async (
@@ -33,43 +111,25 @@ export function useDocumentUpload() {
       setProgress(null);
       setResult(null);
       setError(null);
+      uploadIdRef.current = null;
+      retriesRef.current = 0;
 
       const controller = new AbortController();
       abortRef.current = controller;
 
       try {
-        await streamUpload(
-          file,
-          patientInfo,
-          (event: UploadSSEEvent) => {
-            switch (event.type) {
-              case "progress":
-                setProgress({
-                  step: event.step,
-                  totalSteps: event.totalSteps,
-                  description: event.description,
-                  percent: event.percent,
-                });
-                break;
-              case "complete":
-                setResult({
-                  uploadId: event.uploadId,
-                  resourceCount: event.resourceCount,
-                  resources: event.resources,
-                });
-                setState("complete");
-                break;
-              case "error":
-                setError(event.error);
-                setState("error");
-                break;
-            }
-          },
-          controller.signal,
-        );
+        await streamUpload(file, patientInfo, handleEvent, controller.signal);
       } catch (err) {
         if ((err as Error).name === "AbortError") {
           setState("idle");
+          return;
+        }
+        // Stream died unexpectedly — auto-retry via resume if we have an uploadId
+        if (uploadIdRef.current && retriesRef.current < MAX_RESUME_RETRIES) {
+          console.warn(
+            "[useDocumentUpload] Stream died, attempting resume...",
+          );
+          await attemptResume(uploadIdRef.current);
           return;
         }
         setError(err instanceof Error ? err.message : "Upload failed");
@@ -78,7 +138,18 @@ export function useDocumentUpload() {
         abortRef.current = null;
       }
     },
-    [],
+    [handleEvent, attemptResume],
+  );
+
+  /** Manual resume from UI error state */
+  const resume = useCallback(
+    async (uploadId: string) => {
+      setError(null);
+      retriesRef.current = 0;
+      uploadIdRef.current = uploadId;
+      await attemptResume(uploadId);
+    },
+    [attemptResume],
   );
 
   const cancel = useCallback(() => {
@@ -92,7 +163,19 @@ export function useDocumentUpload() {
     setProgress(null);
     setResult(null);
     setError(null);
+    uploadIdRef.current = null;
+    retriesRef.current = 0;
   }, []);
 
-  return { state, progress, result, error, upload, cancel, reset };
+  return {
+    state,
+    progress,
+    result,
+    error,
+    uploadId: uploadIdRef.current,
+    upload,
+    resume,
+    cancel,
+    reset,
+  };
 }

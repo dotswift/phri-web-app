@@ -12,10 +12,12 @@ interface UploadContextValue {
   progress: UploadProgress | null;
   result: UploadResult | null;
   error: string | null;
+  uploadId: string | null;
   upload: (
     file: File,
     patientInfo: { firstName: string; lastName: string; dob: string },
   ) => Promise<void>;
+  resume: (uploadId: string) => Promise<void>;
   cancel: () => void;
   reset: () => void;
 }
