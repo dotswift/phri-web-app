@@ -68,35 +68,13 @@ export const api = {
   delete: <T>(path: string) => apiFetch<T>(path, { method: "DELETE" }),
 };
 
-export async function streamUpload(
-  file: File,
-  patientInfo: { firstName: string; lastName: string; dob: string },
+/**
+ * Read an SSE stream body line-by-line and dispatch parsed events.
+ */
+async function readSSEStream(
+  res: Response,
   onEvent: (event: UploadSSEEvent) => void,
-  signal?: AbortSignal,
 ): Promise<void> {
-  const token = await getToken();
-
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("firstName", patientInfo.firstName);
-  formData.append("lastName", patientInfo.lastName);
-  formData.append("dob", patientInfo.dob);
-
-  const res = await fetch(`${API_URL}/api/upload/document`, {
-    method: "POST",
-    headers: {
-      Accept: "text/event-stream",
-      Authorization: `Bearer ${token}`,
-    },
-    body: formData,
-    signal,
-  });
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({ error: "Unknown error" }));
-    throw new Error(body.error ?? `HTTP ${res.status}`);
-  }
-
   const reader = res.body!.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
@@ -126,4 +104,64 @@ export async function streamUpload(
   } finally {
     reader.releaseLock();
   }
+}
+
+export async function streamUpload(
+  file: File,
+  patientInfo: { firstName: string; lastName: string; dob: string },
+  onEvent: (event: UploadSSEEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const token = await getToken();
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("firstName", patientInfo.firstName);
+  formData.append("lastName", patientInfo.lastName);
+  formData.append("dob", patientInfo.dob);
+
+  const res = await fetch(`${API_URL}/api/upload/document`, {
+    method: "POST",
+    headers: {
+      Accept: "text/event-stream",
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+    signal,
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: "Unknown error" }));
+    throw new Error(body.error ?? `HTTP ${res.status}`);
+  }
+
+  await readSSEStream(res, onEvent);
+}
+
+/**
+ * Resume a partially-completed upload from last checkpoint.
+ * SSE stream — same event format as streamUpload.
+ */
+export async function streamResume(
+  uploadId: string,
+  onEvent: (event: UploadSSEEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const token = await getToken();
+
+  const res = await fetch(`${API_URL}/api/upload/${uploadId}/resume`, {
+    method: "POST",
+    headers: {
+      Accept: "text/event-stream",
+      Authorization: `Bearer ${token}`,
+    },
+    signal,
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: "Unknown error" }));
+    throw new Error(body.error ?? `HTTP ${res.status}`);
+  }
+
+  await readSSEStream(res, onEvent);
 }
