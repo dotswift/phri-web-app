@@ -325,6 +325,7 @@ export interface DocumentForResourceResponse {
 export interface SettingsResponse {
   aiModeEnabled: boolean;
   connectedPersona: string | null;
+  hasPatient: boolean;
   patientStatus: string | null;
   lastSyncedAt: string | null;
 }

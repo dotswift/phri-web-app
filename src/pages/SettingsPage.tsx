@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   Card,
@@ -11,14 +11,32 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
+import { useDocumentUpload } from "@/hooks/useDocumentUpload";
 import { toast } from "sonner";
-import { LogOut, User } from "lucide-react";
+import {
+  LogOut,
+  User,
+  Trash2,
+  Plus,
+  Upload,
+  X,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
 import type { SettingsResponse } from "@/types/api";
 
 export function SettingsPage() {
@@ -26,16 +44,96 @@ export function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [wiping, setWiping] = useState(false);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [dob, setDob] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { user, signOut, refreshUserState } = useAuth();
   const navigate = useNavigate();
+  const {
+    state: uploadState,
+    progress,
+    result,
+    error: uploadError,
+    upload,
+    cancel,
+    reset: resetUpload,
+  } = useDocumentUpload();
 
-  useEffect(() => {
+  const fetchSettings = () =>
     api
       .get<SettingsResponse>("/api/settings")
       .then(setSettings)
-      .catch((err) => toast.error(err.message))
-      .finally(() => setLoading(false));
+      .catch((err) => toast.error(err.message));
+
+  useEffect(() => {
+    fetchSettings().finally(() => setLoading(false));
   }, []);
+
+  const handleWipeRecords = async () => {
+    setWiping(true);
+    try {
+      await api.post("/api/settings/wipe-records");
+      await refreshUserState();
+      await fetchSettings();
+      toast.success("All records wiped");
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to wipe records",
+      );
+    } finally {
+      setWiping(false);
+    }
+  };
+
+  const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error("File must be smaller than 10MB");
+      return;
+    }
+    setSelectedFile(file);
+  };
+
+  const handleUploadSubmit = () => {
+    if (!selectedFile) return;
+    upload(selectedFile, {
+      firstName: firstName.trim() || "Patient",
+      lastName,
+      dob,
+    });
+  };
+
+  const handleUploadDialogClose = (open: boolean) => {
+    if (!open && uploadState === "uploading") return;
+    setUploadDialogOpen(open);
+    if (!open) {
+      setSelectedFile(null);
+      setFirstName("");
+      setLastName("");
+      setDob("");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      resetUpload();
+    }
+  };
+
+  const handleUploadComplete = () => {
+    setUploadDialogOpen(false);
+    setSelectedFile(null);
+    setFirstName("");
+    setLastName("");
+    setDob("");
+    resetUpload();
+    fetchSettings();
+    refreshUserState();
+    toast.success(`Extracted ${result?.resourceCount ?? 0} health records`);
+  };
 
   const handleToggleAI = async (enabled: boolean) => {
     try {
@@ -140,6 +238,19 @@ export function SettingsPage() {
                 </p>
               )}
             </div>
+          ) : settings.hasPatient ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="font-medium">Upload-only patient</span>
+                <Badge
+                  variant={
+                    settings.patientStatus === "ready" ? "default" : "secondary"
+                  }
+                >
+                  {settings.patientStatus}
+                </Badge>
+              </div>
+            </div>
           ) : (
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">
@@ -151,6 +262,187 @@ export function SettingsPage() {
                 </Button>
               </Link>
             </div>
+          )}
+
+          {settings.hasPatient && (
+            <>
+              <Separator className="my-4" />
+              <div className="flex flex-wrap gap-2">
+                <Dialog
+                  open={uploadDialogOpen}
+                  onOpenChange={handleUploadDialogClose}
+                >
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Plus className="mr-1 h-4 w-4" />
+                      Upload PDF
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Upload Medical Record</DialogTitle>
+                    </DialogHeader>
+
+                    {uploadState === "idle" && (
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="settings-pdf-file">PDF File</Label>
+                          <Input
+                            id="settings-pdf-file"
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".pdf"
+                            onChange={handleFileSelect}
+                            className="mt-1"
+                          />
+                          {selectedFile && (
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {selectedFile.name} (
+                              {(selectedFile.size / 1024).toFixed(1)} KB)
+                            </p>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label htmlFor="settings-first-name">
+                              First Name
+                            </Label>
+                            <Input
+                              id="settings-first-name"
+                              value={firstName}
+                              onChange={(e) => setFirstName(e.target.value)}
+                              placeholder="Patient"
+                              className="mt-1"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="settings-last-name">
+                              Last Name
+                            </Label>
+                            <Input
+                              id="settings-last-name"
+                              value={lastName}
+                              onChange={(e) => setLastName(e.target.value)}
+                              className="mt-1"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <Label htmlFor="settings-dob">Date of Birth</Label>
+                          <Input
+                            id="settings-dob"
+                            type="date"
+                            value={dob}
+                            onChange={(e) => setDob(e.target.value)}
+                            className="mt-1"
+                          />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Patient info is used to remove personal details before
+                          AI processing.
+                        </p>
+                        <Button
+                          onClick={handleUploadSubmit}
+                          disabled={!selectedFile}
+                          className="w-full"
+                        >
+                          <Upload className="mr-1 h-4 w-4" />
+                          Upload & Process
+                        </Button>
+                      </div>
+                    )}
+
+                    {uploadState === "uploading" && progress && (
+                      <div className="space-y-4">
+                        <div>
+                          <div className="mb-2 flex items-center justify-between text-sm">
+                            <span>{progress.description}</span>
+                            <span className="text-muted-foreground">
+                              {progress.percent}%
+                            </span>
+                          </div>
+                          <div className="h-2 overflow-hidden rounded-full bg-secondary">
+                            <div
+                              className="h-full rounded-full bg-primary transition-all duration-300"
+                              style={{ width: `${progress.percent}%` }}
+                            />
+                          </div>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Step {progress.step} of {progress.totalSteps}
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          onClick={cancel}
+                          className="w-full"
+                        >
+                          <X className="mr-1 h-4 w-4" />
+                          Cancel
+                        </Button>
+                      </div>
+                    )}
+
+                    {uploadState === "complete" && result && (
+                      <div className="space-y-4">
+                        <div className="flex flex-col items-center gap-2 py-4 text-center">
+                          <CheckCircle className="h-10 w-10 text-green-500" />
+                          <p className="font-medium">Upload Complete</p>
+                          <p className="text-sm text-muted-foreground">
+                            Extracted {result.resourceCount} health record
+                            {result.resourceCount !== 1 ? "s" : ""}
+                          </p>
+                        </div>
+                        <Button
+                          onClick={handleUploadComplete}
+                          className="w-full"
+                        >
+                          Close
+                        </Button>
+                      </div>
+                    )}
+
+                    {uploadState === "error" && (
+                      <div className="space-y-4">
+                        <div className="flex flex-col items-center gap-2 py-4 text-center">
+                          <AlertCircle className="h-10 w-10 text-destructive" />
+                          <p className="font-medium">Upload Failed</p>
+                          <p className="text-sm text-muted-foreground">
+                            {uploadError}
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          onClick={resetUpload}
+                          className="w-full"
+                        >
+                          Try Again
+                        </Button>
+                      </div>
+                    )}
+                  </DialogContent>
+                </Dialog>
+
+                <ConfirmDialog
+                  trigger={
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-destructive/50 text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="mr-1 h-4 w-4" />
+                      Wipe All Records
+                    </Button>
+                  }
+                  title="Wipe All Records?"
+                  description="This will delete all health resources, embeddings, insights, uploaded documents, and chat history. Your account, consent, and settings will be preserved. The patient will be reset to pending."
+                  confirmLabel="Wipe Records"
+                  destructive
+                  requireTyping="WIPE"
+                  loading={wiping}
+                  onConfirm={handleWipeRecords}
+                />
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
