@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
   Card,
@@ -7,9 +7,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { DataProvenance } from "@/components/shared/DataProvenance";
 import { api } from "@/lib/api";
+import { useUpload } from "@/context/UploadContext";
+import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import type {
   DashboardResponse,
@@ -24,6 +36,12 @@ import {
   ArrowRight,
   AlertTriangle,
   Info,
+  Upload,
+  FileText,
+  Plus,
+  X,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 
 function getGreeting(): string {
@@ -75,8 +93,10 @@ export function DashboardPage() {
   const [immunInsights, setImmunInsights] =
     useState<ImmunizationInsightsResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fetchKey, setFetchKey] = useState(0);
 
   useEffect(() => {
+    setLoading(true);
     Promise.all([
       api.get<DashboardResponse>("/api/dashboard"),
       api
@@ -93,12 +113,18 @@ export function DashboardPage() {
       })
       .catch((err) => toast.error(err.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [fetchKey]);
+
+  const refetch = () => setFetchKey((k) => k + 1);
 
   if (loading) return <DashboardSkeleton />;
   if (!data) return null;
 
-  const firstName = data.patient.sandboxPersona.split(" ")[0];
+  if (data.summary.totalResources === 0) {
+    return <DashboardEmpty persona={data.patient.sandboxPersona} onDataAdded={refetch} />;
+  }
+
+  const firstName = data.patient.sandboxPersona?.split(" ")[0] ?? "there";
 
   return (
     <div className="space-y-6">
@@ -111,7 +137,7 @@ export function DashboardPage() {
           {data.summary.totalResources} total resources
         </p>
         <DataProvenance
-          source={data.patient.sandboxPersona}
+          source={data.patient.sandboxPersona ?? undefined}
           lastSynced={data.patient.lastSyncedAt}
         />
       </div>
@@ -242,6 +268,231 @@ export function DashboardPage() {
               </p>
             </CardContent>
           </Card>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+function DashboardEmpty({ persona, onDataAdded }: { persona: string | null; onDataAdded: () => void }) {
+  const { refreshUserState } = useAuth();
+  const {
+    state: uploadState,
+    progress,
+    result,
+    error: uploadError,
+    upload,
+    cancel,
+    reset: resetUpload,
+  } = useUpload();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [dob, setDob] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error("File must be smaller than 10MB");
+      return;
+    }
+    setSelectedFile(file);
+  };
+
+  const handleUploadSubmit = () => {
+    if (!selectedFile) return;
+    upload(selectedFile, {
+      firstName: firstName.trim() || "Patient",
+      lastName,
+      dob,
+    });
+  };
+
+  const handleDialogClose = (open: boolean) => {
+    if (!open && uploadState === "uploading") return;
+    setDialogOpen(open);
+    if (!open) {
+      setSelectedFile(null);
+      setFirstName("");
+      setLastName("");
+      setDob("");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      resetUpload();
+    }
+  };
+
+  const handleComplete = () => {
+    setDialogOpen(false);
+    setSelectedFile(null);
+    setFirstName("");
+    setLastName("");
+    setDob("");
+    resetUpload();
+    refreshUserState();
+    toast.success(`Extracted ${result?.resourceCount ?? 0} health records`);
+    onDataAdded();
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <div className="rounded-full bg-muted p-4 mb-4">
+        <FileText className="h-8 w-8 text-muted-foreground" />
+      </div>
+      <h1 className="text-2xl font-bold">
+        {persona ? `Welcome, ${persona.split(" ")[0]}` : "Welcome"}
+      </h1>
+      <p className="mt-2 max-w-md text-muted-foreground">
+        No health records yet. Upload a PDF to get started, or head to Settings
+        to manage your connection.
+      </p>
+      <div className="mt-6 flex gap-3">
+        <Dialog open={dialogOpen} onOpenChange={handleDialogClose}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-1 h-4 w-4" />
+              Upload PDF
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Upload Medical Record</DialogTitle>
+            </DialogHeader>
+
+            {uploadState === "idle" && (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="dash-pdf-file">PDF File</Label>
+                  <Input
+                    id="dash-pdf-file"
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf"
+                    onChange={handleFileSelect}
+                    className="mt-1"
+                  />
+                  {selectedFile && (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {selectedFile.name} (
+                      {(selectedFile.size / 1024).toFixed(1)} KB)
+                    </p>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="dash-first-name">First Name</Label>
+                    <Input
+                      id="dash-first-name"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      placeholder="Patient"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="dash-last-name">Last Name</Label>
+                    <Input
+                      id="dash-last-name"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="dash-dob">Date of Birth</Label>
+                  <Input
+                    id="dash-dob"
+                    type="date"
+                    value={dob}
+                    onChange={(e) => setDob(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Patient info is used to remove personal details before AI
+                  processing.
+                </p>
+                <Button
+                  onClick={handleUploadSubmit}
+                  disabled={!selectedFile}
+                  className="w-full"
+                >
+                  <Upload className="mr-1 h-4 w-4" />
+                  Upload & Process
+                </Button>
+              </div>
+            )}
+
+            {uploadState === "uploading" && progress && (
+              <div className="space-y-4">
+                <div>
+                  <div className="mb-2 flex items-center justify-between text-sm">
+                    <span>{progress.description}</span>
+                    <span className="text-muted-foreground">
+                      {progress.percent}%
+                    </span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-secondary">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all duration-300"
+                      style={{ width: `${progress.percent}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Step {progress.step} of {progress.totalSteps}
+                  </p>
+                </div>
+                <Button variant="outline" onClick={cancel} className="w-full">
+                  <X className="mr-1 h-4 w-4" />
+                  Cancel
+                </Button>
+              </div>
+            )}
+
+            {uploadState === "complete" && result && (
+              <div className="space-y-4">
+                <div className="flex flex-col items-center gap-2 py-4 text-center">
+                  <CheckCircle className="h-10 w-10 text-green-500" />
+                  <p className="font-medium">Upload Complete</p>
+                  <p className="text-sm text-muted-foreground">
+                    Extracted {result.resourceCount} health record
+                    {result.resourceCount !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                <Button onClick={handleComplete} className="w-full">
+                  View Dashboard
+                </Button>
+              </div>
+            )}
+
+            {uploadState === "error" && (
+              <div className="space-y-4">
+                <div className="flex flex-col items-center gap-2 py-4 text-center">
+                  <AlertCircle className="h-10 w-10 text-destructive" />
+                  <p className="font-medium">Upload Failed</p>
+                  <p className="text-sm text-muted-foreground">
+                    {uploadError}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={resetUpload}
+                  className="w-full"
+                >
+                  Try Again
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <Link to="/settings">
+          <Button variant="outline">Settings</Button>
         </Link>
       </div>
     </div>

@@ -7,8 +7,10 @@ import {
   MessageSquare,
   Clock,
   Settings,
+  Loader2,
 } from "lucide-react";
 import { DesktopSidebar } from "@/components/layout/FloatingNav";
+import { useUpload } from "@/context/UploadContext";
 import { cn } from "@/lib/utils";
 
 const bottomTabs = [
@@ -68,6 +70,32 @@ function AnimatedOutlet() {
   );
 }
 
+function UploadBanner() {
+  const { state, progress } = useUpload();
+
+  if (state !== "uploading" || !progress) return null;
+
+  return (
+    <div className="mb-4 flex items-center gap-3 rounded-lg border bg-card p-3">
+      <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center justify-between text-sm">
+          <span className="truncate font-medium">{progress.description}</span>
+          <span className="ml-2 shrink-0 text-muted-foreground">
+            {progress.percent}%
+          </span>
+        </div>
+        <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-secondary">
+          <div
+            className="h-full rounded-full bg-primary transition-all duration-300"
+            style={{ width: `${progress.percent}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function AppLayout() {
   return (
     <div className="flex min-h-screen">
@@ -86,6 +114,7 @@ export function AppLayout() {
         tabIndex={-1}
         className="flex-1 md:ml-60 mx-auto max-w-5xl px-4 pb-20 pt-8 md:px-6 md:pb-6 md:pt-8 outline-none"
       >
+        <UploadBanner />
         <AnimatedOutlet />
       </main>
 

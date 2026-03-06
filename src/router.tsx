@@ -86,7 +86,6 @@ function RequirePatient() {
   if (loading) return <LoadingScreen />;
   if (!patient) return <Navigate to="/connect" replace />;
   if (
-    patient.status === "pending" ||
     patient.status === "querying" ||
     patient.status === "downloading" ||
     patient.status === "processing"
@@ -104,7 +103,6 @@ function RootRedirect() {
   if (!consent) return <Navigate to="/consent" replace />;
   if (!patient) return <Navigate to="/connect" replace />;
   if (
-    patient.status === "pending" ||
     patient.status === "querying" ||
     patient.status === "downloading" ||
     patient.status === "processing"

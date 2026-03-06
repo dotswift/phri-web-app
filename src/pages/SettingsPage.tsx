@@ -25,7 +25,7 @@ import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
-import { useDocumentUpload } from "@/hooks/useDocumentUpload";
+import { useUpload } from "@/context/UploadContext";
 import { toast } from "sonner";
 import {
   LogOut,
@@ -61,7 +61,7 @@ export function SettingsPage() {
     upload,
     cancel,
     reset: resetUpload,
-  } = useDocumentUpload();
+  } = useUpload();
 
   const fetchSettings = () =>
     api
