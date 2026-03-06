@@ -137,7 +137,7 @@ export function DashboardPage() {
           {data.summary.totalResources} total resources
         </p>
         <DataProvenance
-          source={data.patient.sandboxPersona}
+          source={data.patient.sandboxPersona ?? undefined}
           lastSynced={data.patient.lastSyncedAt}
         />
       </div>
