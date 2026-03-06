@@ -15,7 +15,7 @@ import {
 import { Breadcrumb } from "@/components/shared/Breadcrumb";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { api } from "@/lib/api";
-import { useDocumentUpload } from "@/hooks/useDocumentUpload";
+import { useUpload } from "@/context/UploadContext";
 import { toast } from "sonner";
 import { FileText, ExternalLink, Loader2, Plus, CheckCircle, AlertCircle, Upload, X } from "lucide-react";
 import type { DocumentListResponse, DocumentUrlResponse, DocumentItem } from "@/types/api";
@@ -50,7 +50,7 @@ export function DocumentsPage() {
   const [dob, setDob] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { state: uploadState, progress, result, error: uploadError, upload, cancel, reset } = useDocumentUpload();
+  const { state: uploadState, progress, result, error: uploadError, upload, cancel, reset } = useUpload();
 
   const fetchData = useCallback(async () => {
     setLoading(true);
