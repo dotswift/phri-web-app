@@ -279,6 +279,12 @@ export interface ChatMessage {
   createdAt: string;
 }
 
+// --- Upload SSE ---
+export type UploadSSEEvent =
+  | { type: "progress"; step: number; totalSteps: number; description: string; percent: number }
+  | { type: "complete"; uploadId: string; resourceCount: number; resources: Array<{ resourceType: string; displayText: string | null }> }
+  | { type: "error"; error: string };
+
 // --- Documents (Metriport source documents) ---
 export interface DocumentItem {
   id: string;
@@ -288,6 +294,9 @@ export interface DocumentItem {
   indexed?: string;
   mimeType?: string;
   size?: number;
+  source?: "metriport" | "upload";
+  fileUrl?: string | null;
+  extractedCount?: number;
   type?: {
     coding?: Array<{
       system?: string | null;
@@ -316,6 +325,7 @@ export interface DocumentForResourceResponse {
 export interface SettingsResponse {
   aiModeEnabled: boolean;
   connectedPersona: string | null;
+  hasPatient: boolean;
   patientStatus: string | null;
   lastSyncedAt: string | null;
 }

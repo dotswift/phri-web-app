@@ -1,10 +1,11 @@
 import { supabase } from "./supabase";
+import type { UploadSSEEvent } from "../types/api";
 
 // In dev, use relative URLs so requests go through the Vite proxy (avoids CORS).
 // In production, hit the backend directly (CORS_ORIGINS configured on backend).
 const API_URL = import.meta.env.DEV ? "" : import.meta.env.VITE_API_URL;
 
-async function getToken(): Promise<string> {
+export async function getToken(): Promise<string> {
   const {
     data: { session },
   } = await supabase.auth.getSession();
@@ -66,3 +67,63 @@ export const api = {
 
   delete: <T>(path: string) => apiFetch<T>(path, { method: "DELETE" }),
 };
+
+export async function streamUpload(
+  file: File,
+  patientInfo: { firstName: string; lastName: string; dob: string },
+  onEvent: (event: UploadSSEEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const token = await getToken();
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("firstName", patientInfo.firstName);
+  formData.append("lastName", patientInfo.lastName);
+  formData.append("dob", patientInfo.dob);
+
+  const res = await fetch(`${API_URL}/api/upload/document`, {
+    method: "POST",
+    headers: {
+      Accept: "text/event-stream",
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+    signal,
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: "Unknown error" }));
+    throw new Error(body.error ?? `HTTP ${res.status}`);
+  }
+
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          try {
+            const event: UploadSSEEvent = JSON.parse(line.slice(6));
+            onEvent(event);
+            if (event.type === "complete" || event.type === "error") return;
+          } catch {
+            // Skip malformed lines
+          }
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+}
