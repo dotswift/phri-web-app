@@ -28,6 +28,7 @@ const EXPORT_SECTIONS: { value: ExportSection; label: string }[] = [
 export function ExportPage() {
   const [formats, setFormats] = useState<ExportFormat[]>([]);
   const [availableSections, setAvailableSections] = useState<ExportSection[]>([]);
+  const [sectionCounts, setSectionCounts] = useState<Partial<Record<ExportSection, number>>>({});
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<string>("pdf");
@@ -42,6 +43,7 @@ export function ExportPage() {
           setSelectedFormat(data.formats[0].id);
         }
         setAvailableSections(data.availableSections);
+        setSectionCounts(data.sectionCounts);
         setSelectedSections(new Set(data.availableSections));
       })
       .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to load export formats"))
@@ -62,6 +64,11 @@ export function ExportPage() {
 
   const visibleSections = EXPORT_SECTIONS.filter((s) =>
     availableSections.includes(s.value),
+  );
+
+  const selectedTotal = [...selectedSections].reduce(
+    (sum, s) => sum + (sectionCounts[s] ?? 0),
+    0,
   );
 
   const toggleAllSections = () => {
@@ -204,19 +211,29 @@ export function ExportPage() {
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2">
-          {visibleSections.map((section) => (
-            <label
-              key={section.value}
-              className="flex items-center gap-2 cursor-pointer"
-            >
-              <Checkbox
-                checked={selectedSections.has(section.value)}
-                onCheckedChange={() => toggleSection(section.value)}
-              />
-              <span className="text-sm">{section.label}</span>
-            </label>
-          ))}
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {visibleSections.map((section) => (
+              <label
+                key={section.value}
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <Checkbox
+                  checked={selectedSections.has(section.value)}
+                  onCheckedChange={() => toggleSection(section.value)}
+                />
+                <span className="text-sm">
+                  {section.label}
+                  <span className="ml-1 text-muted-foreground">
+                    ({sectionCounts[section.value] ?? 0})
+                  </span>
+                </span>
+              </label>
+            ))}
+          </div>
+          <p className="mt-3 text-sm font-medium text-muted-foreground">
+            {selectedTotal.toLocaleString()} record{selectedTotal !== 1 ? "s" : ""} selected
+          </p>
         </CardContent>
       </Card>
 

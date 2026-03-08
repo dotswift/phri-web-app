@@ -334,6 +334,7 @@ export interface ExportFormat {
 export interface ExportFormatsResponse {
   formats: ExportFormat[];
   availableSections: ExportSection[];
+  sectionCounts: Partial<Record<ExportSection, number>>;
 }
 
 export type ExportSection =
