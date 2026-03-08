@@ -69,6 +69,32 @@ export const api = {
 };
 
 /**
+ * Download a file from the API. Returns the raw Response
+ * so the caller can read it as blob, text, or JSON.
+ */
+export async function apiDownload(
+  path: string,
+  options: RequestInit = {},
+): Promise<Response> {
+  const token = await getToken();
+
+  const res = await fetch(`${API_URL}${path}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...options.headers,
+    },
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: "Unknown error" }));
+    throw new ApiError(res.status, body.error ?? "Unknown error");
+  }
+
+  return res;
+}
+
+/**
  * Read an SSE stream body line-by-line and dispatch parsed events.
  */
 async function readSSEStream(

@@ -34,6 +34,7 @@ import {
   Trash2,
   Plus,
   Upload,
+  Download,
   X,
   CheckCircle,
   AlertCircle,
@@ -450,6 +451,26 @@ export function SettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Export Records */}
+      {settings.hasPatient && settings.patientStatus === "ready" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Export Records</CardTitle>
+            <CardDescription>
+              Download your health data as PDF, CSV, FHIR, or a full archive
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link to="/export">
+              <Button variant="outline">
+                <Download className="mr-1 h-4 w-4" />
+                Export Records
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Appearance */}
       <Card>
