@@ -44,6 +44,9 @@ const DocumentsPage = lazy(() =>
     default: m.DocumentsPage,
   })),
 );
+const ExportPage = lazy(() =>
+  import("./pages/ExportPage").then((m) => ({ default: m.ExportPage })),
+);
 
 function LazyFallback() {
   return (
@@ -206,6 +209,14 @@ export function AppRouter() {
                 }
               />
               <Route path="/chat" element={<ChatPage />} />
+              <Route
+                path="/export"
+                element={
+                  <Suspense fallback={<LazyFallback />}>
+                    <ExportPage />
+                  </Suspense>
+                }
+              />
             </Route>
           </Route>
         </Route>

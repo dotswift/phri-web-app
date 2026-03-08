@@ -323,6 +323,35 @@ export interface DocumentForResourceResponse {
   mimeType: string | null;
 }
 
+// --- Export ---
+export interface ExportFormat {
+  id: "pdf" | "csv" | "fhir" | "archive";
+  name: string;
+  description: string;
+  fileType: string;
+}
+
+export interface ExportFormatsResponse {
+  formats: ExportFormat[];
+}
+
+export interface ExportQuery {
+  format: "pdf" | "csv" | "fhir" | "archive";
+  sections?: string[];
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export type ExportSection =
+  | "conditions"
+  | "medications"
+  | "immunizations"
+  | "allergies"
+  | "encounters"
+  | "procedures"
+  | "observations"
+  | "diagnosticReports";
+
 // --- Settings ---
 export interface SettingsResponse {
   aiModeEnabled: boolean;
