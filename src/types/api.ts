@@ -333,13 +333,8 @@ export interface ExportFormat {
 
 export interface ExportFormatsResponse {
   formats: ExportFormat[];
-}
-
-export interface ExportQuery {
-  format: "pdf" | "csv" | "fhir" | "archive";
-  sections?: string[];
-  dateFrom?: string;
-  dateTo?: string;
+  availableSections: ExportSection[];
+  sectionCounts: Partial<Record<ExportSection, number>>;
 }
 
 export type ExportSection =

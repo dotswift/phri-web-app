@@ -8,8 +8,6 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api, apiDownload, ApiError } from "@/lib/api";
 import { toast } from "sonner";
@@ -29,14 +27,12 @@ const EXPORT_SECTIONS: { value: ExportSection; label: string }[] = [
 
 export function ExportPage() {
   const [formats, setFormats] = useState<ExportFormat[]>([]);
+  const [availableSections, setAvailableSections] = useState<ExportSection[]>([]);
+  const [sectionCounts, setSectionCounts] = useState<Partial<Record<ExportSection, number>>>({});
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<string>("pdf");
-  const [selectedSections, setSelectedSections] = useState<Set<ExportSection>>(
-    () => new Set(EXPORT_SECTIONS.map((s) => s.value)),
-  );
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [selectedSections, setSelectedSections] = useState<Set<ExportSection>>(new Set());
 
   useEffect(() => {
     api
@@ -46,6 +42,9 @@ export function ExportPage() {
         if (data.formats.length > 0) {
           setSelectedFormat(data.formats[0].id);
         }
+        setAvailableSections(data.availableSections);
+        setSectionCounts(data.sectionCounts);
+        setSelectedSections(new Set(data.availableSections));
       })
       .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to load export formats"))
       .finally(() => setLoading(false));
@@ -63,11 +62,20 @@ export function ExportPage() {
     });
   };
 
+  const visibleSections = EXPORT_SECTIONS.filter((s) =>
+    availableSections.includes(s.value),
+  );
+
+  const selectedTotal = [...selectedSections].reduce(
+    (sum, s) => sum + (sectionCounts[s] ?? 0),
+    0,
+  );
+
   const toggleAllSections = () => {
-    if (selectedSections.size === EXPORT_SECTIONS.length) {
+    if (selectedSections.size === visibleSections.length) {
       setSelectedSections(new Set());
     } else {
-      setSelectedSections(new Set(EXPORT_SECTIONS.map((s) => s.value)));
+      setSelectedSections(new Set(visibleSections.map((s) => s.value)));
     }
   };
 
@@ -80,12 +88,9 @@ export function ExportPage() {
     setDownloading(true);
     try {
       const params = new URLSearchParams({ format: selectedFormat });
-      if (selectedSections.size < EXPORT_SECTIONS.length) {
+      if (selectedSections.size < visibleSections.length) {
         params.set("sections", [...selectedSections].join(","));
       }
-      if (dateFrom) params.set("dateFrom", dateFrom);
-      if (dateTo) params.set("dateTo", dateTo);
-
       const res = await apiDownload(`/api/export?${params}`);
       const blob = await res.blob();
 
@@ -200,59 +205,35 @@ export function ExportPage() {
               <CardDescription>Select which data to include</CardDescription>
             </div>
             <Button variant="ghost" size="sm" onClick={toggleAllSections}>
-              {selectedSections.size === EXPORT_SECTIONS.length
+              {selectedSections.size === visibleSections.length
                 ? "Deselect All"
                 : "Select All"}
             </Button>
           </div>
         </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2">
-          {EXPORT_SECTIONS.map((section) => (
-            <label
-              key={section.value}
-              className="flex items-center gap-2 cursor-pointer"
-            >
-              <Checkbox
-                checked={selectedSections.has(section.value)}
-                onCheckedChange={() => toggleSection(section.value)}
-              />
-              <span className="text-sm">{section.label}</span>
-            </label>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* Date range */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Date Range</CardTitle>
-          <CardDescription>
-            Optionally filter records by date (leave blank for all)
-          </CardDescription>
-        </CardHeader>
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="export-date-from">From</Label>
-              <Input
-                id="export-date-from"
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="export-date-to">To</Label>
-              <Input
-                id="export-date-to"
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="mt-1"
-              />
-            </div>
+            {visibleSections.map((section) => (
+              <label
+                key={section.value}
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <Checkbox
+                  checked={selectedSections.has(section.value)}
+                  onCheckedChange={() => toggleSection(section.value)}
+                />
+                <span className="text-sm">
+                  {section.label}
+                  <span className="ml-1 text-muted-foreground">
+                    ({sectionCounts[section.value] ?? 0})
+                  </span>
+                </span>
+              </label>
+            ))}
           </div>
+          <p className="mt-3 text-sm font-medium text-muted-foreground">
+            {selectedTotal.toLocaleString()} record{selectedTotal !== 1 ? "s" : ""} selected
+          </p>
         </CardContent>
       </Card>
 
