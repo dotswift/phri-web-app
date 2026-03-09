@@ -106,22 +106,24 @@ export function DashboardPage() {
   const firstName = data.patient.firstName || "there";
   const { summary } = data;
 
+  const navigate = useNavigate();
+
   // Build non-zero record type entries for stat tiles
   const RECORD_TYPES = [
-    { label: "Conditions", count: summary.conditions, icon: Heart, color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-100 dark:bg-rose-900/30" },
-    { label: "Medications", count: summary.medications, icon: Pill, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-900/30" },
-    { label: "Lab Results", count: summary.observations, icon: FlaskConical, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-900/30" },
-    { label: "Immunizations", count: summary.immunizations, icon: Syringe, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-900/30" },
-    { label: "Visits", count: summary.encounters, icon: Stethoscope, color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-100 dark:bg-violet-900/30" },
-    { label: "Procedures", count: summary.procedures, icon: Activity, color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-100 dark:bg-cyan-900/30" },
-    { label: "Reports", count: summary.diagnosticReports, icon: FileBarChart, color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-100 dark:bg-orange-900/30" },
+    { label: "Conditions", count: summary.conditions, icon: Heart, color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-100 dark:bg-rose-900/30", to: "/records/conditions" },
+    { label: "Medications", count: summary.medications, icon: Pill, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-900/30", to: "/records/medications/insights" },
+    { label: "Lab Results", count: summary.observations, icon: FlaskConical, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-900/30", to: "/records/lab-results" },
+    { label: "Immunizations", count: summary.immunizations, icon: Syringe, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-900/30", to: "/records/immunizations" },
+    { label: "Visits", count: summary.encounters, icon: Stethoscope, color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-100 dark:bg-violet-900/30", to: "/records/visits" },
+    { label: "Procedures", count: summary.procedures, icon: Activity, color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-100 dark:bg-cyan-900/30", to: "/records" },
+    { label: "Reports", count: summary.diagnosticReports, icon: FileBarChart, color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-100 dark:bg-orange-900/30", to: "/records/documents" },
   ].filter((r) => r.count > 0);
 
   return (
-    // Fill viewport minus AppLayout padding: pt-8 + pb-20 mobile, pt-8 + pb-6 desktop
-    <div className="flex min-h-[calc(100vh-7rem)] flex-col gap-4 md:min-h-[calc(100vh-3.5rem)]">
+    // Fixed viewport height minus AppLayout padding — forces chat to scroll internally
+    <div className="flex h-[calc(100vh-7rem)] flex-col gap-4 md:h-[calc(100vh-3.5rem)]">
       {/* Greeting + record summary */}
-      <div>
+      <div className="shrink-0">
         <h1 className="text-2xl font-bold">
           {getGreeting()}, {firstName}
         </h1>
@@ -132,11 +134,12 @@ export function DashboardPage() {
 
       {/* Record type stat tiles */}
       {RECORD_TYPES.length > 0 && (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-          {RECORD_TYPES.map(({ label, count, icon: Icon, color, bg }) => (
+        <div className="shrink-0 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+          {RECORD_TYPES.map(({ label, count, icon: Icon, color, bg, to }) => (
             <div
               key={label}
-              className="flex items-center gap-3 rounded-lg border bg-card p-3"
+              onClick={() => navigate(to)}
+              className="flex cursor-pointer items-center gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-accent"
             >
               <div className={`rounded-lg p-1.5 ${bg}`}>
                 <Icon className={`h-4 w-4 ${color}`} />
@@ -152,7 +155,7 @@ export function DashboardPage() {
 
       {/* Processing banners */}
       {isProcessing && (
-        <div className="space-y-2">
+        <div className="shrink-0 space-y-2">
           {isExtracting && (
             <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
               <BrainCircuit className="h-4 w-4 shrink-0 text-primary" />
