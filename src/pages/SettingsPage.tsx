@@ -27,6 +27,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useHealthData } from "@/context/HealthDataContext";
 import { useUpload } from "@/context/UploadContext";
+import { useRebuild } from "@/context/RebuildContext";
 import { toast } from "sonner";
 import {
   LogOut,
@@ -49,7 +50,6 @@ export function SettingsPage() {
   const [disconnecting, setDisconnecting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [wiping, setWiping] = useState(false);
-  const [regenerating, setRegenerating] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [firstName, setFirstName] = useState("");
@@ -58,6 +58,7 @@ export function SettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user, signOut, refreshUserState } = useAuth();
   const { refresh: refreshHealthData } = useHealthData();
+  const { isRebuilding: regenerating, triggerRebuild } = useRebuild();
   const navigate = useNavigate();
   const {
     state: uploadState,
@@ -93,23 +94,6 @@ export function SettingsPage() {
       );
     } finally {
       setWiping(false);
-    }
-  };
-
-  const handleRegenerateInsights = async () => {
-    setRegenerating(true);
-    try {
-      const result = await api.post<{ succeeded: number; failed: number }>("/api/settings/regenerate-insights");
-      refreshHealthData();
-      if (result.failed === 0) {
-        toast.success("Rebuild complete");
-      } else {
-        toast.warning(`${result.succeeded} succeeded, ${result.failed} failed`);
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to rebuild data");
-    } finally {
-      setRegenerating(false);
     }
   };
 
@@ -504,7 +488,7 @@ export function SettingsPage() {
           <CardContent>
             <Button
               variant="outline"
-              onClick={handleRegenerateInsights}
+              onClick={triggerRebuild}
               disabled={regenerating}
             >
               <RefreshCw className={`mr-1 h-4 w-4 ${regenerating ? "animate-spin" : ""}`} />

@@ -5,6 +5,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { HealthDataProvider } from "./context/HealthDataContext";
 import { ResourceDetailProvider } from "./context/ResourceDetailContext";
 import { UploadProvider } from "./context/UploadContext";
+import { RebuildProvider } from "./context/RebuildContext";
 import { AppRouter } from "./router";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,6 +18,7 @@ export default function App() {
         <BrowserRouter>
           <AuthProvider>
             <HealthDataProvider>
+              <RebuildProvider>
               <UploadProvider>
                 <ResourceDetailProvider>
                 <ErrorBoundary>
@@ -27,6 +29,7 @@ export default function App() {
                 <Toaster />
                 </ResourceDetailProvider>
               </UploadProvider>
+              </RebuildProvider>
             </HealthDataProvider>
           </AuthProvider>
         </BrowserRouter>

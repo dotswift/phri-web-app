@@ -10,6 +10,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { useHealthData } from "@/context/HealthDataContext";
 import { usePendingUploadStatus } from "@/hooks/usePendingUploadStatus";
+import { useRebuild } from "@/context/RebuildContext";
 import { toast } from "sonner";
 import {
   Heart,
@@ -30,6 +31,7 @@ import {
   BrainCircuit,
   Loader2,
   MessageSquare,
+  RefreshCw,
 } from "lucide-react";
 
 const InlineChat = lazy(() =>
@@ -60,6 +62,8 @@ export function DashboardPage() {
     chunksCompleted,
     totalChunks,
   } = usePendingUploadStatus();
+
+  const { isRebuilding } = useRebuild();
 
   // Track previous values to only toast on transitions, not on mount
   const prevEnrichmentDone = useRef(enrichmentDone);
@@ -149,6 +153,16 @@ export function DashboardPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Rebuild banner */}
+      {isRebuilding && (
+        <div className="shrink-0">
+          <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
+            <RefreshCw className="h-4 w-4 shrink-0 animate-spin text-primary" />
+            <span className="text-sm">Rebuilding insights and embeddings...</span>
+          </div>
         </div>
       )}
 
