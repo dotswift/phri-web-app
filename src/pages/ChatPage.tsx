@@ -89,8 +89,8 @@ export function InlineChat() {
       <div
         className={`overflow-y-auto px-4 ${
           hasMessages
-            ? "min-h-[200px] max-h-[60vh] py-4"
-            : "py-8"
+            ? "min-h-[300px] max-h-[50vh] py-4 md:min-h-[400px] md:max-h-[60vh]"
+            : "py-10 md:py-16"
         }`}
       >
         <div role="log" aria-live="off" className="space-y-4">

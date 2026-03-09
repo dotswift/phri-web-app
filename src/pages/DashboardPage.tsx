@@ -12,6 +12,13 @@ import { useHealthData } from "@/context/HealthDataContext";
 import { usePendingUploadStatus } from "@/hooks/usePendingUploadStatus";
 import { toast } from "sonner";
 import {
+  Heart,
+  Pill,
+  FlaskConical,
+  Syringe,
+  Stethoscope,
+  Activity,
+  FileBarChart,
   FileUp,
   FileText,
   Search,
@@ -99,31 +106,48 @@ export function DashboardPage() {
   const firstName = data.patient.firstName || "there";
   const { summary } = data;
 
-  // Build non-zero record type entries for display
-  const recordBreakdown = [
-    { label: "Conditions", count: summary.conditions },
-    { label: "Medications", count: summary.medications },
-    { label: "Lab Results", count: summary.observations },
-    { label: "Immunizations", count: summary.immunizations },
-    { label: "Visits", count: summary.encounters },
-    { label: "Procedures", count: summary.procedures },
-    { label: "Reports", count: summary.diagnosticReports },
+  // Build non-zero record type entries for stat tiles
+  const RECORD_TYPES = [
+    { label: "Conditions", count: summary.conditions, icon: Heart, color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-100 dark:bg-rose-900/30" },
+    { label: "Medications", count: summary.medications, icon: Pill, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-900/30" },
+    { label: "Lab Results", count: summary.observations, icon: FlaskConical, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-900/30" },
+    { label: "Immunizations", count: summary.immunizations, icon: Syringe, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-900/30" },
+    { label: "Visits", count: summary.encounters, icon: Stethoscope, color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-100 dark:bg-violet-900/30" },
+    { label: "Procedures", count: summary.procedures, icon: Activity, color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-100 dark:bg-cyan-900/30" },
+    { label: "Reports", count: summary.diagnosticReports, icon: FileBarChart, color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-100 dark:bg-orange-900/30" },
   ].filter((r) => r.count > 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Greeting + record summary */}
       <div>
         <h1 className="text-2xl font-bold">
           {getGreeting()}, {firstName}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          {summary.totalResources} health records
-          {recordBreakdown.length > 0 && (
-            <> &mdash; {recordBreakdown.map((r) => `${r.count} ${r.label.toLowerCase()}`).join(", ")}</>
-          )}
+          You own <span className="font-semibold text-foreground">{summary.totalResources} health records</span>
         </p>
       </div>
+
+      {/* Record type stat tiles */}
+      {RECORD_TYPES.length > 0 && (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+          {RECORD_TYPES.map(({ label, count, icon: Icon, color, bg }) => (
+            <div
+              key={label}
+              className="flex items-center gap-3 rounded-lg border bg-card p-3"
+            >
+              <div className={`rounded-lg p-1.5 ${bg}`}>
+                <Icon className={`h-4 w-4 ${color}`} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-lg font-bold leading-tight">{count}</p>
+                <p className="truncate text-xs text-muted-foreground">{label}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Processing banners */}
       {isProcessing && (
