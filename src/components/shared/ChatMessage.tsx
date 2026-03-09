@@ -45,14 +45,7 @@ interface ChatMessageProps {
   content: string;
   citations?: ChatCitation[];
   isStreaming?: boolean;
-  onSuggestionClick?: (text: string) => void;
 }
-
-const FOLLOW_UP_CHIPS = [
-  "Tell me more",
-  "Compare to previous results",
-  "Is this value normal?",
-];
 
 /** Inject CitationMarker components into a plain-text string */
 function injectCitations(text: string, citations: ChatCitation[]): ReactNode[] {
@@ -160,7 +153,7 @@ function SourcesDialog({ citations }: { citations: ChatCitation[] }) {
   );
 }
 
-export function ChatMessage({ role, content, citations, isStreaming, onSuggestionClick }: ChatMessageProps) {
+export function ChatMessage({ role, content, citations, isStreaming }: ChatMessageProps) {
   if (role === "user") {
     return (
       <div className="flex justify-end">
@@ -220,20 +213,6 @@ export function ChatMessage({ role, content, citations, isStreaming, onSuggestio
         </div>
         {hasCitations && !isStreaming && (
           <SourcesDialog citations={citations} />
-        )}
-        {/* Follow-up suggestion chips — show only when not streaming and has content */}
-        {!isStreaming && content && onSuggestionClick && (
-          <div className="flex flex-wrap gap-1.5 pt-1">
-            {FOLLOW_UP_CHIPS.map((chip) => (
-              <button
-                key={chip}
-                onClick={() => onSuggestionClick(chip)}
-                className="rounded-full border bg-card px-3 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-              >
-                {chip}
-              </button>
-            ))}
-          </div>
         )}
       </div>
     </div>

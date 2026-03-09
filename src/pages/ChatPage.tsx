@@ -5,14 +5,8 @@ import { ChatMessage } from "@/components/shared/ChatMessage";
 import { useChat } from "@/hooks/useChat";
 import { useChatAccessibility } from "@/hooks/useChatAccessibility";
 import { detectCrisis, CRISIS_MESSAGE } from "@/lib/crisis-detection";
-import { api, ApiError } from "@/lib/api";
-import { Send, MessageSquare, Phone, Sparkles, Square } from "lucide-react";
-
-const DEFAULT_PROMPTS = [
-  "What conditions do I have?",
-  "Explain my latest lab results",
-  "Am I up to date on vaccines?",
-];
+import { ApiError } from "@/lib/api";
+import { Send, MessageSquare, Phone, Square } from "lucide-react";
 
 /**
  * Inline chat component for embedding on the dashboard.
@@ -30,20 +24,7 @@ export function InlineChat() {
   const [input, setInput] = useState("");
   const [aiDisabled, setAiDisabled] = useState(false);
   const [crisisDetected, setCrisisDetected] = useState(false);
-  const [suggestions, setSuggestions] = useState<string[]>(DEFAULT_PROMPTS);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Load suggestions
-  useEffect(() => {
-    api
-      .get<{ suggestions: Array<{ text: string }> }>("/api/chat/suggestions")
-      .then((result) => {
-        if (result.suggestions.length > 0) {
-          setSuggestions(result.suggestions.map((s) => s.text));
-        }
-      })
-      .catch(() => {});
-  }, []);
 
   // Auto-scroll
   useEffect(() => {
@@ -113,22 +94,10 @@ export function InlineChat() {
       <div className="max-h-[300px] overflow-y-auto p-4 sm:max-h-[400px]">
         <div role="log" aria-live="off" className="space-y-4">
           {messages.length === 0 && !crisisDetected && (
-            <div className="flex flex-col items-center gap-4 py-6 text-center">
+            <div className="flex flex-col items-center py-6 text-center">
               <p className="text-sm text-muted-foreground">
                 Ask a question about your health records
               </p>
-              <div className="flex flex-wrap justify-center gap-2">
-                {suggestions.map((prompt) => (
-                  <button
-                    key={prompt}
-                    onClick={() => handleSend(prompt)}
-                    className="rounded-full border bg-card px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                  >
-                    <Sparkles className="mr-1 inline h-3 w-3" />
-                    {prompt}
-                  </button>
-                ))}
-              </div>
             </div>
           )}
 
@@ -179,11 +148,6 @@ export function InlineChat() {
               content={msg.content}
               citations={msg.citations}
               isStreaming={isStreaming && i === messages.length - 1 && msg.role === "assistant"}
-              onSuggestionClick={
-                !isStreaming && i === messages.length - 1 && msg.role === "assistant"
-                  ? (text) => handleSend(text)
-                  : undefined
-              }
             />
           ))}
           <div ref={messagesEndRef} />
