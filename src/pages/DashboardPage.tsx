@@ -44,6 +44,7 @@ function getGreeting(): string {
 }
 
 export function DashboardPage() {
+  const navigate = useNavigate();
   const {
     dashboard: data,
     initialLoading,
@@ -105,8 +106,6 @@ export function DashboardPage() {
 
   const firstName = data.patient.firstName || "there";
   const { summary } = data;
-
-  const navigate = useNavigate();
 
   // Build non-zero record type entries for stat tiles
   const RECORD_TYPES = [
