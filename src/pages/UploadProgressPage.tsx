@@ -151,8 +151,8 @@ export function UploadProgressPage() {
         </h1>
         <p className="text-sm text-muted-foreground">
           {isComplete
-            ? "Your health data is in your hands"
-            : "Bringing your health records home"}
+            ? "Now you own your health records"
+            : "Taking ownership of your health records"}
         </p>
       </div>
 
