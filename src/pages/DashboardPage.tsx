@@ -153,6 +153,17 @@ export function DashboardPage() {
               </div>
             </div>
           ))}
+          <div
+            onClick={() => navigate("/provider-search")}
+            className="flex cursor-pointer items-center gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-accent"
+          >
+            <div className="rounded-lg p-1.5 bg-slate-100 dark:bg-slate-900/30">
+              <Search className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">Search Providers & Records</p>
+            </div>
+          </div>
         </div>
       )}
 
