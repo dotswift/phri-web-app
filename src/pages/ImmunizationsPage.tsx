@@ -105,15 +105,15 @@ export function ImmunizationsPage() {
                 key={i}
                 className={`flex gap-3 rounded-md border p-3 ${
                   finding.severity === "warning"
-                    ? "border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/20"
+                    ? "border-amber-200 bg-amber-50"
                     : "border-border bg-muted/30"
                 }`}
               >
                 <div className="mt-0.5 shrink-0">
                   {finding.severity === "warning" ? (
-                    <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    <AlertTriangle className="h-4 w-4 text-amber-600" />
                   ) : (
-                    <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <Info className="h-4 w-4 text-blue-600" />
                   )}
                 </div>
                 <div className="min-w-0 space-y-1.5">

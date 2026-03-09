@@ -113,13 +113,13 @@ export function DashboardPage() {
 
   // Build non-zero record type entries for stat tiles
   const RECORD_TYPES = [
-    { label: "Conditions", count: summary.conditions, icon: Heart, color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-100 dark:bg-rose-900/30", to: "/records/conditions" },
-    { label: "Medications", count: summary.medications, icon: Pill, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-100 dark:bg-blue-900/30", to: "/records/medications/insights" },
-    { label: "Lab Results", count: summary.observations, icon: FlaskConical, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-100 dark:bg-amber-900/30", to: "/records/lab-results" },
-    { label: "Immunizations", count: summary.immunizations, icon: Syringe, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-100 dark:bg-emerald-900/30", to: "/records/immunizations" },
-    { label: "Visits", count: summary.encounters, icon: Stethoscope, color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-100 dark:bg-violet-900/30", to: "/records/visits" },
-    { label: "Procedures", count: summary.procedures, icon: Activity, color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-100 dark:bg-cyan-900/30", to: "/records" },
-    { label: "Reports", count: summary.diagnosticReports, icon: FileBarChart, color: "text-orange-600 dark:text-orange-400", bg: "bg-orange-100 dark:bg-orange-900/30", to: "/records/documents" },
+    { label: "Conditions", count: summary.conditions, icon: Heart, color: "text-rose-600", bg: "bg-rose-100", to: "/records/conditions" },
+    { label: "Medications", count: summary.medications, icon: Pill, color: "text-blue-600", bg: "bg-blue-100", to: "/records/medications/insights" },
+    { label: "Lab Results", count: summary.observations, icon: FlaskConical, color: "text-amber-600", bg: "bg-amber-100", to: "/records/lab-results" },
+    { label: "Immunizations", count: summary.immunizations, icon: Syringe, color: "text-emerald-600", bg: "bg-emerald-100", to: "/records/immunizations" },
+    { label: "Visits", count: summary.encounters, icon: Stethoscope, color: "text-violet-600", bg: "bg-violet-100", to: "/records/visits" },
+    { label: "Procedures", count: summary.procedures, icon: Activity, color: "text-cyan-600", bg: "bg-cyan-100", to: "/records" },
+    { label: "Reports", count: summary.diagnosticReports, icon: FileBarChart, color: "text-orange-600", bg: "bg-orange-100", to: "/records/documents" },
   ].filter((r) => r.count > 0);
 
   return (
@@ -157,8 +157,8 @@ export function DashboardPage() {
             onClick={() => navigate("/provider-search")}
             className="flex cursor-pointer items-center gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-accent"
           >
-            <div className="rounded-lg p-1.5 bg-slate-100 dark:bg-slate-900/30">
-              <Search className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+            <div className="rounded-lg p-1.5 bg-slate-100">
+              <Search className="h-4 w-4 text-slate-600" />
             </div>
             <div className="min-w-0">
               <p className="text-xs font-medium leading-tight">Search</p>
@@ -339,8 +339,8 @@ function DashboardEmpty({
             onClick={() => navigate("/upload")}
           >
             <CardContent className="flex flex-col items-center gap-2 p-6 text-center">
-              <div className="rounded-lg bg-blue-100 p-2 dark:bg-blue-900/30">
-                <FileUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <div className="rounded-lg bg-blue-100 p-2">
+                <FileUp className="h-5 w-5 text-blue-600" />
               </div>
               <p className="text-sm font-semibold">Upload Records</p>
               <p className="text-xs text-muted-foreground">
@@ -354,8 +354,8 @@ function DashboardEmpty({
             onClick={() => navigate("/provider-search")}
           >
             <CardContent className="flex flex-col items-center gap-2 p-6 text-center">
-              <div className="rounded-lg bg-violet-100 p-2 dark:bg-violet-900/30">
-                <Search className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+              <div className="rounded-lg bg-violet-100 p-2">
+                <Search className="h-5 w-5 text-violet-600" />
               </div>
               <p className="text-sm font-semibold">Find a Provider</p>
               <p className="text-xs text-muted-foreground">

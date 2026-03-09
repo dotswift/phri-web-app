@@ -30,14 +30,14 @@ export function SandboxActiveBanner() {
   const { deactivateSandboxDemo } = useSandboxDemo();
 
   return (
-    <div className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
+    <div className="flex items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-800">
       <Info className="h-4 w-4 shrink-0" />
       <span className="flex-1">
         Showing demo medication data — sandbox persona has no real records.
       </span>
       <button
         onClick={deactivateSandboxDemo}
-        className="inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-xs font-medium hover:bg-blue-200/60 dark:hover:bg-blue-800/60"
+        className="inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-xs font-medium hover:bg-blue-200/60"
       >
         <X className="h-3 w-3" />
         Deactivate

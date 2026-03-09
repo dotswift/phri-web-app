@@ -40,7 +40,7 @@ export function MedicationChangeSparkline({ history }: SparklineProps) {
   const strokeColor = increased
     ? "oklch(0.55 0.15 155)"
     : decreased
-      ? "oklch(0.65 0.15 45)"
+      ? "oklch(0.35 0.18 250)"
       : "oklch(0.55 0.1 250)";
 
   return (

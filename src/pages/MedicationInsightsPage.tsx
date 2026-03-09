@@ -83,15 +83,15 @@ export function MedicationInsightsPage() {
                 key={i}
                 className={`flex gap-3 rounded-md border p-3 ${
                   finding.severity === "warning"
-                    ? "border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-950/20"
+                    ? "border-amber-200 bg-amber-50"
                     : "border-border bg-muted/30"
                 }`}
               >
                 <div className="mt-0.5 shrink-0">
                   {finding.severity === "warning" ? (
-                    <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    <AlertTriangle className="h-4 w-4 text-amber-600" />
                   ) : (
-                    <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    <Info className="h-4 w-4 text-blue-600" />
                   )}
                 </div>
                 <div className="min-w-0 space-y-1.5">
@@ -134,7 +134,7 @@ export function MedicationInsightsPage() {
                     key={group.drug}
                     className={`rounded-md border p-3 ${
                       group.isMultiProvider
-                        ? "border-amber-200 dark:border-amber-900/50"
+                        ? "border-amber-200"
                         : ""
                     }`}
                   >
@@ -143,7 +143,7 @@ export function MedicationInsightsPage() {
                       {group.isMultiProvider && (
                         <Badge
                           variant="outline"
-                          className="border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-400"
+                          className="border-amber-300 bg-amber-50 text-amber-700"
                         >
                           <Users className="mr-1 h-3 w-3" />
                           Multiple Providers
@@ -203,10 +203,10 @@ export function MedicationInsightsPage() {
                           <div className="flex items-center gap-2">
                             <p className="font-medium">{group.drug}</p>
                             {isIncrease && (
-                              <ArrowUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                              <ArrowUp className="h-4 w-4 text-emerald-600" />
                             )}
                             {isDecrease && (
-                              <ArrowDown className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                              <ArrowDown className="h-4 w-4 text-amber-600" />
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground">

@@ -142,7 +142,7 @@ export function ChatMessage({ role, content, citations, isStreaming }: ChatMessa
             AI-generated
           </span>
 
-          <div className="prose prose-sm max-w-none dark:prose-invert">
+          <div className="prose prose-sm max-w-none">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{displayContent}</ReactMarkdown>
             {isStreaming && <span className="ml-0.5 inline-block animate-pulse">|</span>}
           </div>

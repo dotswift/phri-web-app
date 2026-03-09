@@ -6,7 +6,6 @@ import {
   Syringe,
   Settings,
 } from "lucide-react";
-import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -67,12 +66,6 @@ export function DesktopSidebar() {
         <SidebarLink to="/settings" label="Settings" icon={Settings} />
       </nav>
 
-      {/* Footer */}
-      <div className="border-t border-sidebar-border px-3 py-3">
-        <div className="px-1">
-          <ThemeToggle />
-        </div>
-      </div>
     </aside>
   );
 }
