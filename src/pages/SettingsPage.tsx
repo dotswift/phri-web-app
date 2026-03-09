@@ -39,6 +39,7 @@ import {
   CheckCircle,
   AlertCircle,
   FolderOpen,
+  RefreshCw,
 } from "lucide-react";
 import type { SettingsResponse } from "@/types/api";
 
@@ -48,6 +49,7 @@ export function SettingsPage() {
   const [disconnecting, setDisconnecting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [wiping, setWiping] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [firstName, setFirstName] = useState("");
@@ -91,6 +93,23 @@ export function SettingsPage() {
       );
     } finally {
       setWiping(false);
+    }
+  };
+
+  const handleRegenerateInsights = async () => {
+    setRegenerating(true);
+    try {
+      const result = await api.post<{ succeeded: number; failed: number }>("/api/settings/regenerate-insights");
+      refreshHealthData();
+      if (result.failed === 0) {
+        toast.success("Rebuild complete");
+      } else {
+        toast.warning(`${result.succeeded} succeeded, ${result.failed} failed`);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to rebuild data");
+    } finally {
+      setRegenerating(false);
     }
   };
 
@@ -469,6 +488,28 @@ export function SettingsPage() {
                 Export Records
               </Button>
             </Link>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Regenerate Insights */}
+      {settings.hasPatient && settings.patientStatus === "ready" && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Rebuild Data</CardTitle>
+            <CardDescription>
+              Regenerate insights, chat suggestions, and search embeddings from your health records
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              variant="outline"
+              onClick={handleRegenerateInsights}
+              disabled={regenerating}
+            >
+              <RefreshCw className={`mr-1 h-4 w-4 ${regenerating ? "animate-spin" : ""}`} />
+              {regenerating ? "Rebuilding..." : "Rebuild Everything"}
+            </Button>
           </CardContent>
         </Card>
       )}
