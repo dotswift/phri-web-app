@@ -9,9 +9,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { TrustBadges } from "@/components/shared/TrustBadges";
 import { api } from "@/lib/api";
+import { parseProviderName } from "@/lib/parse-provider-name";
+import { searchCities, getUnambiguousState, type UsCity } from "@/lib/us-cities";
 import { toast } from "sonner";
 import {
   Search,
@@ -26,6 +27,7 @@ import {
   FileText,
   Printer,
   Shield,
+  ChevronDown,
 } from "lucide-react";
 
 // --- Types matching backend response ---
@@ -98,6 +100,8 @@ const TYPE_LABELS: Record<ContactOption["type"], string> = {
   contact_form: "Contact Form",
 };
 
+const PAGE_SIZE = 10;
+
 function ContactLink({ option }: { option: ContactOption }) {
   const Icon = CONTACT_ICONS[option.type];
 
@@ -154,14 +158,131 @@ function buildNpiFallbackOptions(provider: ProviderResult | null): ContactOption
   return options;
 }
 
+/** City autocomplete input with dropdown suggestions */
+function CityInput({
+  city,
+  onCityChange,
+  onStateAutoFill,
+}: {
+  city: string;
+  onCityChange: (value: string) => void;
+  onStateAutoFill: (state: string) => void;
+}) {
+  const [suggestions, setSuggestions] = useState<UsCity[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [highlightIndex, setHighlightIndex] = useState(-1);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  const handleChange = (value: string) => {
+    onCityChange(value);
+    const matches = searchCities(value);
+    setSuggestions(matches);
+    setShowSuggestions(matches.length > 0);
+    setHighlightIndex(-1);
+  };
+
+  const selectCity = (c: UsCity) => {
+    onCityChange(c.city);
+    onStateAutoFill(c.state);
+    setShowSuggestions(false);
+  };
+
+  const handleBlur = () => {
+    // Delay to allow click on suggestion
+    setTimeout(() => {
+      setShowSuggestions(false);
+      // Auto-fill state if current city text is unambiguous
+      if (city.trim().length >= 2) {
+        const state = getUnambiguousState(city.trim());
+        if (state) onStateAutoFill(state);
+      }
+    }, 150);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!showSuggestions) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightIndex((i) => Math.min(i + 1, suggestions.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightIndex((i) => Math.max(i - 1, 0));
+    } else if (e.key === "Enter" && highlightIndex >= 0) {
+      e.preventDefault();
+      selectCity(suggestions[highlightIndex]);
+    } else if (e.key === "Escape") {
+      setShowSuggestions(false);
+    }
+  };
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <Input
+        id="provCity"
+        value={city}
+        onChange={(e) => handleChange(e.target.value)}
+        onFocus={() => {
+          if (city.trim().length >= 2) {
+            const matches = searchCities(city);
+            setSuggestions(matches);
+            setShowSuggestions(matches.length > 0);
+          }
+        }}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+        placeholder="Pittsburgh"
+        autoComplete="off"
+        role="combobox"
+        aria-expanded={showSuggestions}
+        aria-autocomplete="list"
+        aria-controls="city-suggestions"
+      />
+      {showSuggestions && (
+        <ul
+          id="city-suggestions"
+          role="listbox"
+          className="absolute z-50 mt-1 max-h-48 w-full overflow-y-auto rounded-md border bg-popover shadow-md"
+        >
+          {suggestions.map((c, i) => (
+            <li
+              key={`${c.city}-${c.state}`}
+              role="option"
+              aria-selected={i === highlightIndex}
+              className={`cursor-pointer px-3 py-2 text-sm ${
+                i === highlightIndex ? "bg-accent text-accent-foreground" : ""
+              }`}
+              onMouseDown={() => selectCity(c)}
+              onMouseEnter={() => setHighlightIndex(i)}
+            >
+              {c.city}, {c.state}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export function ProviderSearchPage() {
   const navigate = useNavigate();
-  const [lastName, setLastName] = useState("");
-  const [firstName, setFirstName] = useState("");
+  const [nameInput, setNameInput] = useState("");
   const [city, setCity] = useState("");
   const [stateCode, setStateCode] = useState("");
   const [searching, setSearching] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [results, setResults] = useState<ProviderResult[] | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
   const [enriching, setEnriching] = useState<string | null>(null);
   const [enriched, setEnriched] = useState<EnrichmentResult | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<ProviderResult | null>(null);
@@ -183,36 +304,64 @@ export function ProviderSearchPage() {
     return () => clearInterval(messageInterval.current);
   }, [enriching]);
 
-  const handleSearch = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!lastName.trim()) return;
-      setSearching(true);
-      setResults(null);
-      setEnriched(null);
+  const doSearch = useCallback(
+    async (skip: number, append: boolean) => {
+      const parsed = parseProviderName(nameInput);
+      if (!parsed.last) return;
+
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setSearching(true);
+        setResults(null);
+        setEnriched(null);
+        setTotalCount(0);
+      }
+
       try {
         const params = new URLSearchParams();
-        params.set("last_name", lastName.trim());
-        if (firstName.trim()) params.set("first_name", firstName.trim());
+        params.set("last_name", parsed.last);
+        if (parsed.first) params.set("first_name", parsed.first);
         if (city.trim()) params.set("city", city.trim());
         if (stateCode.trim()) params.set("state", stateCode.trim().toUpperCase());
         params.set("type", "individual");
-        params.set("limit", "10");
+        params.set("limit", String(PAGE_SIZE));
+        if (skip > 0) params.set("skip", String(skip));
 
         const data = await api.get<{ count: number; providers: ProviderResult[] }>(
           `/api/providers/search?${params}`,
         );
-        setResults(data.providers || []);
+
+        if (append) {
+          setResults((prev) => [...(prev || []), ...(data.providers || [])]);
+        } else {
+          setResults(data.providers || []);
+        }
+        setTotalCount(data.count || 0);
       } catch (err) {
         toast.error(
           err instanceof Error ? err.message : "Search failed",
         );
       } finally {
         setSearching(false);
+        setLoadingMore(false);
       }
     },
-    [lastName, firstName, city, stateCode],
+    [nameInput, city, stateCode],
   );
+
+  const handleSearch = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      doSearch(0, false);
+    },
+    [doSearch],
+  );
+
+  const handleLoadMore = useCallback(() => {
+    if (!results) return;
+    doSearch(results.length, true);
+  }, [doSearch, results]);
 
   const handleEnrich = useCallback(async (npi: string, provider: ProviderResult) => {
     setEnriching(npi);
@@ -231,6 +380,9 @@ export function ProviderSearchPage() {
       setEnriching(null);
     }
   }, []);
+
+  const hasMore = results !== null && results.length < totalCount;
+  const parsed = parseProviderName(nameInput);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-start gap-6 p-4 pt-12">
@@ -257,52 +409,67 @@ export function ProviderSearchPage() {
         <Card className="mb-6">
           <CardContent className="pt-6">
             <form onSubmit={handleSearch} className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="provLastName">Last Name</Label>
-                  <Input
-                    id="provLastName"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    placeholder="Smith"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="provFirstName">First Name</Label>
-                  <Input
-                    id="provFirstName"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    placeholder="John"
-                  />
+              <div className="space-y-2">
+                <label htmlFor="provName" className="text-sm font-medium leading-none">
+                  Doctor's name
+                </label>
+                <Input
+                  id="provName"
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  placeholder='e.g. "Dr. Shaina Hecht" or just "Hecht"'
+                  autoFocus
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Type their name however you know it — we'll figure out the rest
+                </p>
+              </div>
+
+              <div>
+                <button
+                  type="button"
+                  className="mb-2 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={(e) => {
+                    const details = (e.currentTarget.nextElementSibling as HTMLElement);
+                    details.classList.toggle("hidden");
+                    e.currentTarget.querySelector("svg")?.classList.toggle("rotate-180");
+                  }}
+                >
+                  <ChevronDown className="h-3 w-3 transition-transform" />
+                  Narrow by location (optional)
+                </button>
+                <div className="hidden">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <label htmlFor="provCity" className="text-sm font-medium leading-none">
+                        City
+                      </label>
+                      <CityInput
+                        city={city}
+                        onCityChange={setCity}
+                        onStateAutoFill={setStateCode}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label htmlFor="provState" className="text-sm font-medium leading-none">
+                        State
+                      </label>
+                      <Input
+                        id="provState"
+                        value={stateCode}
+                        onChange={(e) => setStateCode(e.target.value)}
+                        placeholder="PA"
+                        maxLength={2}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="provCity">City</Label>
-                  <Input
-                    id="provCity"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    placeholder="San Francisco"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="provState">State</Label>
-                  <Input
-                    id="provState"
-                    value={stateCode}
-                    onChange={(e) => setStateCode(e.target.value)}
-                    placeholder="CA"
-                    maxLength={2}
-                  />
-                </div>
-              </div>
+
               <Button
                 type="submit"
                 className="w-full"
-                disabled={!lastName.trim() || searching}
+                disabled={!parsed.last || searching}
               >
                 {searching ? (
                   <>
@@ -312,7 +479,7 @@ export function ProviderSearchPage() {
                 ) : (
                   <>
                     <Search className="mr-2 h-4 w-4" />
-                    Search Providers
+                    Search
                   </>
                 )}
               </Button>
@@ -322,13 +489,21 @@ export function ProviderSearchPage() {
 
         {/* Results */}
         {results !== null && results.length === 0 && (
-          <p className="text-center text-sm text-muted-foreground">
-            No providers found. Try adjusting your search.
-          </p>
+          <div className="text-center py-8">
+            <p className="text-sm text-muted-foreground">
+              No providers found. Try a different spelling or remove the location filter.
+            </p>
+          </div>
         )}
 
         {results && results.length > 0 && (
           <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              {totalCount === results.length
+                ? `${totalCount} provider${totalCount !== 1 ? "s" : ""} found`
+                : `Showing ${results.length} of ${totalCount} providers`}
+            </p>
+
             {results.map((provider) => (
               <Card key={provider.npi}>
                 <CardHeader className="pb-2">
@@ -370,6 +545,25 @@ export function ProviderSearchPage() {
                 </CardContent>
               </Card>
             ))}
+
+            {/* Load more */}
+            {hasMore && (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+              >
+                {loadingMore ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  `Show more (${totalCount - results.length} remaining)`
+                )}
+              </Button>
+            )}
           </div>
         )}
 
@@ -408,12 +602,10 @@ export function ProviderSearchPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {(() => {
-                // Build fallback options from NPI data if enrichment returned nothing
                 let options = enriched.contactOptions.length > 0
                   ? enriched.contactOptions
                   : buildNpiFallbackOptions(selectedProvider);
 
-                // Filter out contact_form when an email exists
                 const hasEmail = options.some((o) => o.type === "email");
                 if (hasEmail) {
                   options = options.filter((o) => o.type !== "contact_form");
@@ -476,9 +668,7 @@ export function ProviderSearchPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={async () => {
-              navigate("/home");
-            }}
+            onClick={() => navigate("/home")}
           >
             Skip for now
           </Button>
