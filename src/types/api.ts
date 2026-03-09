@@ -44,6 +44,14 @@ export interface Citation {
 }
 
 // --- Dashboard ---
+export interface DashboardSnapshot {
+  activeConditions: Array<{ id: string; name: string }>;
+  activeMedications: Array<{ id: string; name: string; dosage: string | null }>;
+  activeAllergies: Array<{ id: string; name: string; criticality: string | null }>;
+  flaggedLabs: Array<{ id: string; name: string; value: number | null; unit: string | null; interpretation: string | null; date: string | null }>;
+  lastEncounter: { id: string; type: string | null; date: string | null; provider: string | null } | null;
+}
+
 export interface DashboardResponse {
   patient: {
     id: string;
@@ -63,6 +71,7 @@ export interface DashboardResponse {
     procedures: number;
     diagnosticReports: number;
   };
+  snapshot?: DashboardSnapshot;
   recentActivity: Array<{
     id: string;
     resourceType: string;
