@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +22,12 @@ import {
   Loader2,
   ArrowLeft,
   FileUp,
+  FileText,
+  Printer,
+  Shield,
 } from "lucide-react";
+
+// --- Types matching backend response ---
 
 interface NpiAddress {
   line1: string;
@@ -48,14 +53,79 @@ interface ProviderResult {
   mailingAddress: NpiAddress | null;
 }
 
-interface EnrichedProvider {
+interface ContactOption {
+  type: "email" | "phone" | "fax" | "website" | "contact_form";
+  value: string;
+  label: string;
+  source: string;
+  confidence: "high" | "medium" | "low";
+}
+
+interface EnrichmentResult {
   npi: string;
-  name: string;
-  phone?: string;
-  email?: string;
-  website?: string;
-  contactForms?: string[];
-  address?: string;
+  providerName: string;
+  contactOptions: ContactOption[];
+  _confidence: "high" | "medium" | "low" | "none";
+  _sources: string[];
+}
+
+// --- Loading messages ---
+
+const ENRICHMENT_MESSAGES = [
+  "Finding your doctor's info...",
+  "Searching Google Places...",
+  "Looking up contact details...",
+  "Checking for email addresses...",
+  "Scanning their website...",
+  "Almost there...",
+  "You're closer to owning your healthcare records",
+];
+
+const CONTACT_ICONS: Record<ContactOption["type"], typeof Phone> = {
+  phone: Phone,
+  email: Mail,
+  fax: Printer,
+  website: Globe,
+  contact_form: FileText,
+};
+
+const CONFIDENCE_STYLES: Record<ContactOption["confidence"], string> = {
+  high: "bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800",
+  medium: "bg-yellow-50 border-yellow-200 dark:bg-yellow-950/30 dark:border-yellow-800",
+  low: "bg-muted border-border",
+};
+
+function ContactLink({ option }: { option: ContactOption }) {
+  const Icon = CONTACT_ICONS[option.type];
+
+  let href: string | undefined;
+  if (option.type === "phone") href = `tel:${option.value}`;
+  else if (option.type === "fax") href = `tel:${option.value}`;
+  else if (option.type === "email") href = `mailto:${option.value}`;
+  else if (option.type === "website" || option.type === "contact_form") href = option.value;
+
+  return (
+    <div
+      className={`flex items-start gap-3 rounded-lg border p-3 ${CONFIDENCE_STYLES[option.confidence]}`}
+    >
+      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+      <div className="min-w-0 flex-1">
+        {href ? (
+          <a
+            href={href}
+            target={option.type === "website" || option.type === "contact_form" ? "_blank" : undefined}
+            rel={option.type === "website" || option.type === "contact_form" ? "noopener noreferrer" : undefined}
+            className="text-sm font-medium text-primary hover:underline break-all"
+          >
+            {option.value}
+          </a>
+        ) : (
+          <span className="text-sm font-medium break-all">{option.value}</span>
+        )}
+        <p className="text-xs text-muted-foreground mt-0.5">{option.label}</p>
+      </div>
+    </div>
+  );
 }
 
 export function ProviderSearchPage() {
@@ -67,7 +137,24 @@ export function ProviderSearchPage() {
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState<ProviderResult[] | null>(null);
   const [enriching, setEnriching] = useState<string | null>(null);
-  const [enriched, setEnriched] = useState<EnrichedProvider | null>(null);
+  const [enriched, setEnriched] = useState<EnrichmentResult | null>(null);
+  const [loadingMessage, setLoadingMessage] = useState(ENRICHMENT_MESSAGES[0]);
+  const messageInterval = useRef<ReturnType<typeof setInterval>>();
+
+  // Cycle through loading messages while enriching
+  useEffect(() => {
+    if (enriching) {
+      let idx = 0;
+      setLoadingMessage(ENRICHMENT_MESSAGES[0]);
+      messageInterval.current = setInterval(() => {
+        idx = Math.min(idx + 1, ENRICHMENT_MESSAGES.length - 1);
+        setLoadingMessage(ENRICHMENT_MESSAGES[idx]);
+      }, 2500);
+    } else {
+      clearInterval(messageInterval.current);
+    }
+    return () => clearInterval(messageInterval.current);
+  }, [enriching]);
 
   const handleSearch = useCallback(
     async (e: React.FormEvent) => {
@@ -102,8 +189,9 @@ export function ProviderSearchPage() {
 
   const handleEnrich = useCallback(async (npi: string) => {
     setEnriching(npi);
+    setEnriched(null);
     try {
-      const data = await api.get<EnrichedProvider>(
+      const data = await api.get<EnrichmentResult>(
         `/api/providers/${npi}/enrich`,
       );
       setEnriched(data);
@@ -257,70 +345,64 @@ export function ProviderSearchPage() {
           </div>
         )}
 
+        {/* Enrichment loading state */}
+        {enriching && (
+          <Card className="mt-6 border-primary/30">
+            <CardContent className="py-10">
+              <div className="flex flex-col items-center gap-4 text-center">
+                <div className="relative">
+                  <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                  <Shield className="absolute inset-0 m-auto h-4 w-4 text-primary/60" />
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">{loadingMessage}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    This may take a few seconds while we search multiple sources
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Enriched contact info */}
-        {enriched && (
+        {enriched && !enriching && (
           <Card className="mt-6 border-primary/30">
             <CardHeader>
               <CardTitle className="text-base">
-                Contact: {enriched.name}
+                Contact: {enriched.providerName}
               </CardTitle>
               <CardDescription>
-                Use this information to request your medical records
+                {enriched.contactOptions.length > 0
+                  ? "Use this information to request your medical records"
+                  : "We couldn't find additional contact info for this provider"}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {enriched.phone && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <a
-                    href={`tel:${enriched.phone}`}
-                    className="text-primary hover:underline"
-                  >
-                    {enriched.phone}
-                  </a>
-                </div>
-              )}
-              {enriched.email && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <a
-                    href={`mailto:${enriched.email}`}
-                    className="text-primary hover:underline"
-                  >
-                    {enriched.email}
-                  </a>
-                </div>
-              )}
-              {enriched.website && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Globe className="h-4 w-4 text-muted-foreground" />
-                  <a
-                    href={enriched.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    {enriched.website}
-                  </a>
-                </div>
-              )}
-              {enriched.address && (
-                <div className="flex items-center gap-2 text-sm">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <span>{enriched.address}</span>
-                </div>
-              )}
+              {enriched.contactOptions.length > 0 ? (
+                <>
+                  <div className="space-y-2">
+                    {enriched.contactOptions.map((option, i) => (
+                      <ContactLink key={`${option.type}-${i}`} option={option} />
+                    ))}
+                  </div>
 
-              <div className="mt-4 rounded-md bg-muted p-3 text-sm text-muted-foreground">
-                <p className="font-medium text-foreground mb-1">
-                  How to request your records:
+                  <div className="mt-4 rounded-md bg-muted p-3 text-sm text-muted-foreground">
+                    <p className="font-medium text-foreground mb-1">
+                      How to request your records:
+                    </p>
+                    <ol className="list-decimal list-inside space-y-1 text-xs">
+                      <li>Call or email the provider's medical records department</li>
+                      <li>Request a copy of your complete medical records in PDF format</li>
+                      <li>Once you receive your records, come back and upload them</li>
+                    </ol>
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Try contacting the provider directly using the phone number from the search results above.
                 </p>
-                <ol className="list-decimal list-inside space-y-1 text-xs">
-                  <li>Call or email the provider's medical records department</li>
-                  <li>Request a copy of your complete medical records in PDF format</li>
-                  <li>Once you receive your records, come back and upload them</li>
-                </ol>
-              </div>
+              )}
             </CardContent>
           </Card>
         )}
