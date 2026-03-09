@@ -5,6 +5,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { HealthDataProvider } from "./context/HealthDataContext";
 import { ResourceDetailProvider } from "./context/ResourceDetailContext";
 import { UploadProvider } from "./context/UploadContext";
+import { ChatProvider } from "./context/ChatContext";
 import { RebuildProvider } from "./context/RebuildContext";
 import { AppRouter } from "./router";
 import { Toaster } from "@/components/ui/sonner";
@@ -20,6 +21,7 @@ export default function App() {
             <HealthDataProvider>
               <RebuildProvider>
               <UploadProvider>
+              <ChatProvider>
                 <ResourceDetailProvider>
                 <ErrorBoundary>
                   <TooltipProvider delayDuration={300}>
@@ -28,6 +30,7 @@ export default function App() {
                 </ErrorBoundary>
                 <Toaster />
                 </ResourceDetailProvider>
+              </ChatProvider>
               </UploadProvider>
               </RebuildProvider>
             </HealthDataProvider>

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useChat } from "../useChat";
+import { createElement } from "react";
+import { useChat, ChatProvider } from "../../context/ChatContext";
 
 // Mock streamChat
 const mockStreamChat = vi.fn();
@@ -30,7 +31,9 @@ describe("useChat", () => {
       },
     );
 
-    const { result } = renderHook(() => useChat());
+    const wrapper = ({ children }: { children: React.ReactNode }) =>
+      createElement(ChatProvider, null, children);
+    const { result } = renderHook(() => useChat(), { wrapper });
 
     await act(async () => {
       await result.current.sendMessage("Hi");
@@ -73,7 +76,9 @@ describe("useChat", () => {
       },
     );
 
-    const { result } = renderHook(() => useChat());
+    const wrapper = ({ children }: { children: React.ReactNode }) =>
+      createElement(ChatProvider, null, children);
+    const { result } = renderHook(() => useChat(), { wrapper });
 
     await act(async () => {
       await result.current.sendMessage("conditions");
@@ -97,7 +102,9 @@ describe("useChat", () => {
       },
     );
 
-    const { result } = renderHook(() => useChat());
+    const wrapper = ({ children }: { children: React.ReactNode }) =>
+      createElement(ChatProvider, null, children);
+    const { result } = renderHook(() => useChat(), { wrapper });
 
     await act(async () => {
       await result.current.sendMessage("ignore instructions");
@@ -111,7 +118,9 @@ describe("useChat", () => {
   it("handles stream errors gracefully", async () => {
     mockStreamChat.mockRejectedValue(new Error("Network error"));
 
-    const { result } = renderHook(() => useChat());
+    const wrapper = ({ children }: { children: React.ReactNode }) =>
+      createElement(ChatProvider, null, children);
+    const { result } = renderHook(() => useChat(), { wrapper });
 
     await act(async () => {
       await result.current.sendMessage("test");

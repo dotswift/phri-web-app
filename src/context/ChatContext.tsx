@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { createContext, useContext, useState, useCallback, useRef } from "react";
 import { streamChat } from "../lib/chat";
 import type { ChatCitation, ChatSSEEvent } from "../types/api";
 
@@ -9,7 +9,19 @@ export interface Message {
   citations?: ChatCitation[];
 }
 
-export function useChat() {
+interface ChatContextValue {
+  messages: Message[];
+  isStreaming: boolean;
+  sessionId: string | undefined;
+  setSessionId: React.Dispatch<React.SetStateAction<string | undefined>>;
+  setMessages: React.Dispatch<React.SetStateAction<Message[]>>;
+  sendMessage: (text: string) => Promise<void>;
+  stopStreaming: () => void;
+}
+
+const ChatContext = createContext<ChatContextValue | null>(null);
+
+export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>();
@@ -89,7 +101,6 @@ export function useChat() {
         }, controller.signal);
       } catch (err) {
         if ((err as Error).name === "AbortError") {
-          // User stopped generation — keep partial content
           return;
         }
         setMessages((prev) => {
@@ -108,13 +119,27 @@ export function useChat() {
     [sessionId],
   );
 
-  return {
-    messages,
-    isStreaming,
-    sessionId,
-    setSessionId,
-    setMessages,
-    sendMessage,
-    stopStreaming,
-  };
+  return (
+    <ChatContext.Provider
+      value={{
+        messages,
+        isStreaming,
+        sessionId,
+        setSessionId,
+        setMessages,
+        sendMessage,
+        stopStreaming,
+      }}
+    >
+      {children}
+    </ChatContext.Provider>
+  );
+}
+
+export function useChat(): ChatContextValue {
+  const ctx = useContext(ChatContext);
+  if (!ctx) {
+    throw new Error("useChat must be used within a ChatProvider");
+  }
+  return ctx;
 }

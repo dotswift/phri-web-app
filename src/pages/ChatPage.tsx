@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ChatMessage } from "@/components/shared/ChatMessage";
-import { useChat } from "@/hooks/useChat";
+import { useChat } from "@/context/ChatContext";
 import { useChatAccessibility } from "@/hooks/useChatAccessibility";
 import { detectCrisis, CRISIS_MESSAGE } from "@/lib/crisis-detection";
 import { ApiError } from "@/lib/api";
