@@ -22,23 +22,23 @@ import { toast } from "sonner";
 
 const PROGRESS_STEPS = [
   {
-    label: "Uploading document",
+    label: "Uploading your records",
     description: "Securely transmitting your medical records...",
     icon: FileUp,
   },
   {
-    label: "Securing your data",
-    description: "Encrypting and de-identifying personal information...",
+    label: "Protecting your data",
+    description: "Encrypting and stripping personal identifiers...",
     icon: ShieldCheck,
   },
   {
-    label: "Analyzing records",
-    description: "Extracting health data from your documents...",
+    label: "Reading your records",
+    description: "Extracting health data so it's yours to explore...",
     icon: BrainCircuit,
   },
   {
-    label: "Records processed",
-    description: "Your health data is ready to explore.",
+    label: "Your records are yours",
+    description: "Your health data is organized and ready.",
     icon: CircleCheckBig,
   },
 ] as const;
@@ -90,14 +90,14 @@ export function UploadProgressPage() {
   // Toast when enrichment/embedding complete
   useEffect(() => {
     if (realtimeStatus?.enrichmentStatus === "completed") {
-      toast.success("Insights are now available");
+      toast.success("Your health insights are ready");
       refreshDashboard();
     }
   }, [realtimeStatus?.enrichmentStatus, refreshDashboard]);
 
   useEffect(() => {
     if (realtimeStatus?.embeddingStatus === "completed") {
-      toast.success("Chat is ready");
+      toast.success("Your health assistant is ready");
     }
   }, [realtimeStatus?.embeddingStatus]);
 
@@ -107,14 +107,19 @@ export function UploadProgressPage() {
     navigate("/home");
   }, [refreshUserState, navigate]);
 
-  // Auto-navigate after complete + short delay
+  // Determine if post-processing is fully done
+  const postProcessingDone =
+    realtimeStatus?.enrichmentStatus === "completed" &&
+    realtimeStatus?.embeddingStatus === "completed";
+
+  // Auto-navigate only after extraction AND post-processing are both done
   useEffect(() => {
-    if (!isComplete) return;
+    if (!isComplete || !postProcessingDone) return;
     const timeout = setTimeout(() => {
       handleContinue();
     }, 2000);
     return () => clearTimeout(timeout);
-  }, [isComplete, handleContinue]);
+  }, [isComplete, postProcessingDone, handleContinue]);
 
   const handleRetry = useCallback(async () => {
     if (uploadId) {
@@ -141,9 +146,13 @@ export function UploadProgressPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4 animate-in fade-in duration-300">
       <div className="text-center mb-10">
-        <h1 className="text-2xl font-bold">PHRI</h1>
+        <h1 className="text-2xl font-bold">
+          <span className="text-primary">P</span>HRI
+        </h1>
         <p className="text-sm text-muted-foreground">
-          Getting closer to owning your medical records
+          {isComplete
+            ? "Your health data is in your hands"
+            : "Bringing your health records home"}
         </p>
       </div>
 
@@ -158,7 +167,7 @@ export function UploadProgressPage() {
             {chunksCompleted}/{totalChunks} sections processed
           </p>
           <p className="text-2xl font-bold text-primary">{totalExtracted}</p>
-          <p className="text-xs text-muted-foreground">resources found</p>
+          <p className="text-xs text-muted-foreground">health records found so far</p>
           {resourceCounts && Object.keys(resourceCounts).length > 0 && (
             <div className="mt-2 flex flex-wrap justify-center gap-2">
               {Object.entries(resourceCounts).map(([type, count]) => (
@@ -274,14 +283,14 @@ export function UploadProgressPage() {
           {realtimeStatus.enrichmentStatus !== "completed" && (
             <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
               <Sparkles className="h-4 w-4 shrink-0 text-primary" />
-              <span className="text-sm">Enriching medical codes...</span>
+              <span className="text-sm">Building your health insights...</span>
               <Loader2 className="ml-auto h-4 w-4 animate-spin text-muted-foreground" />
             </div>
           )}
           {realtimeStatus.embeddingStatus !== "completed" && (
             <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
               <MessageSquare className="h-4 w-4 shrink-0 text-primary" />
-              <span className="text-sm">Preparing chat...</span>
+              <span className="text-sm">Preparing your health assistant...</span>
               <Loader2 className="ml-auto h-4 w-4 animate-spin text-muted-foreground" />
             </div>
           )}
@@ -291,7 +300,18 @@ export function UploadProgressPage() {
       {/* Action buttons */}
       <div className="mt-8">
         {isComplete && (
-          <Button onClick={handleContinue}>Continue to Dashboard</Button>
+          <div className="flex flex-col items-center gap-2">
+            <Button onClick={handleContinue}>
+              {postProcessingDone
+                ? "View your dashboard"
+                : "Continue to dashboard"}
+            </Button>
+            {!postProcessingDone && (
+              <p className="text-xs text-muted-foreground">
+                Insights are still loading — they'll be ready when you arrive
+              </p>
+            )}
+          </div>
         )}
 
         {isFailed && (

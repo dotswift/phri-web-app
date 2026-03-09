@@ -248,8 +248,8 @@ export function ProviderSearchPage() {
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold">Find Your Provider</h1>
           <p className="mt-1 text-muted-foreground">
-            Search for your healthcare provider to get their contact information
-            for requesting your records.
+            Your records are yours by law. Find your provider's contact info
+            so you can request them.
           </p>
         </div>
 

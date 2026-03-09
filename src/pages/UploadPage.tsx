@@ -56,12 +56,12 @@ export function UploadPage() {
           <div className="flex items-center gap-2">
             <FileUp className="h-5 w-5 text-primary" />
             <h1 className="text-lg font-semibold leading-none tracking-tight">
-              Upload Medical Records
+              Upload Your Records
             </h1>
           </div>
           <CardDescription>
-            Upload a PDF of your medical records. We'll extract and organize your
-            health data automatically.
+            This is the first step to owning your health data. Upload a PDF
+            and we'll do the rest.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

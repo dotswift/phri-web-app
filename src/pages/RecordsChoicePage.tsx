@@ -11,16 +11,16 @@ import { FileUp, Search } from "lucide-react";
 
 const OPTIONS = [
   {
-    title: "I already have my records",
+    title: "I have my records",
     description:
-      "Upload a PDF of your medical records and we'll extract your health data automatically.",
+      "Upload a PDF and we'll organize your health data so it's yours to explore.",
     icon: FileUp,
     to: "/upload",
   },
   {
-    title: "Help me request them",
+    title: "Help me get them",
     description:
-      "Search for your healthcare provider and get their contact info to request your records.",
+      "Find your provider's contact info so you can request your records directly.",
     icon: Search,
     to: "/provider-search",
   },
@@ -32,9 +32,9 @@ export function RecordsChoicePage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 p-4">
       <div className="text-center">
-        <h1 className="text-2xl font-bold">Your Medical Records</h1>
+        <h1 className="text-2xl font-bold">Take Ownership of Your Records</h1>
         <p className="mt-1 text-muted-foreground">
-          How would you like to get started?
+          Your health data should be in your hands. Let's make that happen.
         </p>
       </div>
 

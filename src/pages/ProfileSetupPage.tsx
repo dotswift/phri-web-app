@@ -53,12 +53,12 @@ export function ProfileSetupPage() {
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-primary" />
             <h1 className="text-lg font-semibold leading-none tracking-tight">
-              Profile Setup
+              Let's Set Up Your Profile
             </h1>
           </div>
           <CardDescription>
-            Tell us a bit about yourself so we can personalize your experience
-            and de-identify your records.
+            We use this to de-identify your records before AI processing — keeping
+            your data yours.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -101,8 +101,9 @@ export function ProfileSetupPage() {
               <div className="flex items-start gap-2">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                 <p>
-                  Your data is encrypted at rest (AES-256) and in transit (TLS).
-                  Personal identifiers are stripped before any AI processing.
+                  Your data is encrypted at rest and in transit. Personal
+                  identifiers are stripped before any AI processing — your records
+                  stay under your control.
                 </p>
               </div>
             </div>

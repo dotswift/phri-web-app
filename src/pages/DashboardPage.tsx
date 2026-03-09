@@ -6,7 +6,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataProvenance } from "@/components/shared/DataProvenance";
 import { useHealthData } from "@/context/HealthDataContext";
@@ -75,7 +74,6 @@ export function DashboardPage() {
     medInsights,
     immunInsights,
     initialLoading,
-    refresh,
   } = useHealthData();
 
   if (initialLoading) return <DashboardSkeleton />;

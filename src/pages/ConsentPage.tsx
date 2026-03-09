@@ -83,12 +83,12 @@ export function ConsentPage() {
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-primary" />
             <h1 className="text-lg font-semibold leading-none tracking-tight">
-              Data Consent
+              Your Data, Your Rules
             </h1>
           </div>
           <CardDescription>
-            Before we connect your health records, please review how your data
-            will be used.
+            Owning your records means controlling how they're used. Here's how
+            we protect your data.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -100,24 +100,22 @@ export function ConsentPage() {
                   <Info className="mt-0.5 h-4 w-4 shrink-0 text-info" />
                   <div className="space-y-2">
                     <p>
-                      PHRI fetches health records from connected provider
-                      networks and stores them in an encrypted database
-                      (AES-256 at rest, TLS in transit) to power your insights
-                      dashboard and AI-powered chat.
+                      Your records belong to you. PHRI stores them in an
+                      encrypted database (AES-256 at rest, TLS in transit) so
+                      you can access insights and ask questions about your own
+                      health data.
                     </p>
                     <p>
-                      Your health records and chat history are stored in our
-                      encrypted database until you choose to delete them. When
-                      excerpts are sent to our AI provider (Anthropic Claude)
-                      for chat, they are processed in real-time and are not
-                      used to train AI models.
+                      When excerpts are sent to our AI provider (Anthropic
+                      Claude) for chat, they are de-identified and processed in
+                      real-time — never used to train AI models.
                     </p>
                     <p>
                       You can permanently delete all your data at any time from
                       the Settings page.
                     </p>
                     <p className="font-medium text-foreground">
-                      You maintain full control of your data at all times.
+                      Your records, your control — always.
                     </p>
                   </div>
                 </div>

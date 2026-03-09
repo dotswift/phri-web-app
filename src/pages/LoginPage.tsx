@@ -96,7 +96,7 @@ export function LoginPage() {
             <span className="text-primary">P</span>HRI
           </h1>
           <p className="text-sm text-muted-foreground">
-            {isSignUp ? "Create your account" : "Personal Health Record & Insights"}
+            {isSignUp ? "Start owning your health records" : "Own your health records"}
           </p>
         </CardHeader>
         <CardContent>
