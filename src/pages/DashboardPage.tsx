@@ -10,7 +10,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataProvenance } from "@/components/shared/DataProvenance";
 import { useHealthData } from "@/context/HealthDataContext";
-import { usePostProcessingStatus } from "@/hooks/usePostProcessingStatus";
+import { usePendingUploadStatus } from "@/hooks/usePendingUploadStatus";
 import { toast } from "sonner";
 import {
   Clock,
@@ -28,6 +28,7 @@ import {
   Printer,
   Globe,
   Sparkles,
+  BrainCircuit,
   Loader2,
 } from "lucide-react";
 
@@ -82,12 +83,28 @@ export function DashboardPage() {
     refreshDashboard,
   } = useHealthData();
 
-  const { isProcessing, enrichmentDone, embeddingDone } =
-    usePostProcessingStatus();
+  const {
+    isExtracting,
+    isProcessing,
+    extractionDone,
+    enrichmentDone,
+    embeddingDone,
+    chunksCompleted,
+    totalChunks,
+  } = usePendingUploadStatus();
 
   // Track previous values to only toast on transitions, not on mount
   const prevEnrichmentDone = useRef(enrichmentDone);
   const prevEmbeddingDone = useRef(embeddingDone);
+  const prevChunksCompleted = useRef(chunksCompleted);
+
+  // Refresh dashboard when new chunks arrive
+  useEffect(() => {
+    if (chunksCompleted > 0 && chunksCompleted !== prevChunksCompleted.current) {
+      refreshDashboard();
+    }
+    prevChunksCompleted.current = chunksCompleted;
+  }, [chunksCompleted, refreshDashboard]);
 
   useEffect(() => {
     if (enrichmentDone && !prevEnrichmentDone.current) {
@@ -112,6 +129,9 @@ export function DashboardPage() {
       <DashboardEmpty
         firstName={data.patient.firstName}
         isProcessing={isProcessing}
+        isExtracting={isExtracting}
+        chunksCompleted={chunksCompleted}
+        totalChunks={totalChunks}
       />
     );
   }
@@ -134,17 +154,27 @@ export function DashboardPage() {
         />
       </div>
 
-      {/* Processing banner */}
+      {/* Processing banners */}
       {isProcessing && (
         <div className="space-y-2">
-          {!enrichmentDone && (
+          {isExtracting && (
+            <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
+              <BrainCircuit className="h-4 w-4 shrink-0 text-primary" />
+              <span className="text-sm">
+                Processing your records
+                {totalChunks > 0 && ` \u2014 ${chunksCompleted}/${totalChunks} sections done`}
+              </span>
+              <Loader2 className="ml-auto h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          )}
+          {extractionDone && !enrichmentDone && (
             <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
               <Sparkles className="h-4 w-4 shrink-0 text-primary" />
               <span className="text-sm">Building your health insights...</span>
               <Loader2 className="ml-auto h-4 w-4 animate-spin text-muted-foreground" />
             </div>
           )}
-          {!embeddingDone && (
+          {extractionDone && !embeddingDone && (
             <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
               <MessageSquare className="h-4 w-4 shrink-0 text-primary" />
               <span className="text-sm">Preparing your health assistant...</span>
@@ -303,9 +333,15 @@ const SAVED_CONTACT_ICONS: Record<string, typeof Phone> = {
 function DashboardEmpty({
   firstName,
   isProcessing = false,
+  isExtracting = false,
+  chunksCompleted = 0,
+  totalChunks = 0,
 }: {
   firstName: string | null;
   isProcessing?: boolean;
+  isExtracting?: boolean;
+  chunksCompleted?: number;
+  totalChunks?: number;
 }) {
   const navigate = useNavigate();
   const savedRaw = localStorage.getItem("phri_saved_provider");
@@ -330,10 +366,19 @@ function DashboardEmpty({
       <div className="mt-8 w-full max-w-lg space-y-4">
         {isProcessing && (
           <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
-            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
+            {isExtracting ? (
+              <BrainCircuit className="h-4 w-4 shrink-0 text-primary" />
+            ) : (
+              <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
+            )}
             <span className="text-sm text-muted-foreground">
-              Your records are being processed — insights will appear shortly
+              {isExtracting
+                ? `Processing your records${totalChunks > 0 ? ` \u2014 ${chunksCompleted}/${totalChunks} sections done` : ""}`
+                : "Your records are being processed \u2014 insights will appear shortly"}
             </span>
+            {isExtracting && (
+              <Loader2 className="ml-auto h-4 w-4 animate-spin text-muted-foreground" />
+            )}
           </div>
         )}
         {savedProvider && (

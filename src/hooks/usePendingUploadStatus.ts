@@ -7,18 +7,25 @@ function isDone(status: string | undefined): boolean {
   return status === "completed" || status === "failed";
 }
 
-export function usePostProcessingStatus() {
+export function usePendingUploadStatus() {
   const [uploadId, setUploadId] = useState<string | null>(() =>
     localStorage.getItem(STORAGE_KEY),
   );
 
   const status = useDocumentUploadRealtime(uploadId);
 
+  const extractionDone = isDone(status?.status);
   const enrichmentDone = isDone(status?.enrichmentStatus);
   const embeddingDone = isDone(status?.embeddingStatus);
-  const allDone = enrichmentDone && embeddingDone;
+  const allDone = extractionDone && enrichmentDone && embeddingDone;
 
-  // Clear localStorage once both are done
+  const isExtracting = uploadId !== null && !extractionDone;
+  const isProcessing = uploadId !== null && status !== null && !allDone;
+
+  const chunksCompleted = status?.chunksCompleted ?? 0;
+  const totalChunks = status?.totalChunks ?? 0;
+
+  // Clear localStorage once everything is done
   useEffect(() => {
     if (allDone && uploadId) {
       localStorage.removeItem(STORAGE_KEY);
@@ -26,12 +33,15 @@ export function usePostProcessingStatus() {
     }
   }, [allDone, uploadId]);
 
-  const isProcessing = uploadId !== null && status !== null && !allDone;
-
   return {
+    isExtracting,
     isProcessing,
+    extractionDone,
     enrichmentDone,
     embeddingDone,
+    allDone,
+    chunksCompleted,
+    totalChunks,
     status,
   };
 }

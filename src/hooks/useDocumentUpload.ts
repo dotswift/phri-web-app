@@ -46,9 +46,11 @@ export function useDocumentUpload() {
     switch (event.type) {
       case "upload_created":
         uploadIdRef.current = event.uploadId;
+        localStorage.setItem("phri_pending_upload_id", event.uploadId);
         break;
       case "resumed":
         uploadIdRef.current = event.uploadId;
+        localStorage.setItem("phri_pending_upload_id", event.uploadId);
         break;
       case "progress":
         setProgress({

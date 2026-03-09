@@ -3,6 +3,9 @@ import { supabase } from "@/lib/supabase";
 import { api } from "@/lib/api";
 
 interface UploadRealtimeStatus {
+  status: string;
+  chunksCompleted: number;
+  totalChunks: number;
   enrichmentStatus: string;
   embeddingStatus: string;
 }
@@ -26,18 +29,29 @@ export function useDocumentUploadRealtime(
     // Initial fetch to avoid race condition
     api
       .get<{
+        status: string;
+        chunksCompleted: number;
+        totalChunks: number;
         enrichmentStatus: string;
         embeddingStatus: string;
       }>(`/api/upload/${uploadId}/status`)
       .then((data) => {
         setStatus({
+          status: data.status ?? "processing",
+          chunksCompleted: data.chunksCompleted ?? 0,
+          totalChunks: data.totalChunks ?? 0,
           enrichmentStatus: data.enrichmentStatus ?? "pending",
           embeddingStatus: data.embeddingStatus ?? "pending",
         });
       })
       .catch(() => {
-        // Fall back to pending if fetch fails
-        setStatus({ enrichmentStatus: "pending", embeddingStatus: "pending" });
+        setStatus({
+          status: "processing",
+          chunksCompleted: 0,
+          totalChunks: 0,
+          enrichmentStatus: "pending",
+          embeddingStatus: "pending",
+        });
       });
 
     // Subscribe to realtime changes
@@ -54,6 +68,9 @@ export function useDocumentUploadRealtime(
         (payload) => {
           const row = payload.new as Record<string, unknown>;
           setStatus({
+            status: (row.status as string) ?? "processing",
+            chunksCompleted: (row.chunksCompleted as number) ?? 0,
+            totalChunks: (row.totalChunks as number) ?? 0,
             enrichmentStatus: (row.enrichmentStatus as string) ?? "pending",
             embeddingStatus: (row.embeddingStatus as string) ?? "pending",
           });

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -8,17 +8,11 @@ import {
   CircleCheckBig,
   Check,
   AlertCircle,
-  Loader2,
-  Sparkles,
-  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useUpload } from "@/context/UploadContext";
 import { useAuth } from "@/context/AuthContext";
-import { useHealthData } from "@/context/HealthDataContext";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
-import { useDocumentUploadRealtime } from "@/hooks/useDocumentUploadRealtime";
-import { toast } from "sonner";
 
 const PROGRESS_STEPS = [
   {
@@ -57,7 +51,6 @@ export function UploadProgressPage() {
     chunksCompleted, totalChunks, resourceCounts, totalExtracted,
   } = useUpload();
   const { refreshUserState } = useAuth();
-  const { refreshDashboard } = useHealthData();
   const navigate = useNavigate();
   const prefersReduced = useReducedMotion();
 
@@ -65,68 +58,17 @@ export function UploadProgressPage() {
   const isFailed = state === "error";
   const currentStep = percentToStep(progress?.percent, isComplete);
 
-  // Persist uploadId so dashboard can subscribe to post-processing status
-  useEffect(() => {
-    if (isComplete && uploadId) {
-      localStorage.setItem("phri_pending_upload_id", uploadId);
-    }
-  }, [isComplete, uploadId]);
-
-  // Phase B: transition to dashboard view after first chunk_complete
-  const [showDashboard, setShowDashboard] = useState(false);
-
-  useEffect(() => {
-    if (chunksCompleted > 0 && !showDashboard) {
-      setShowDashboard(true);
-      refreshDashboard();
-    }
-  }, [chunksCompleted, showDashboard, refreshDashboard]);
-
-  // Refresh dashboard on each chunk_complete
+  // Navigate to dashboard once the first chunk completes
   useEffect(() => {
     if (chunksCompleted > 0) {
-      refreshDashboard();
+      refreshUserState().then(() => navigate("/home"));
     }
-  }, [chunksCompleted, refreshDashboard]);
+  }, [chunksCompleted > 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Phase C: post-processing realtime subscription
-  const realtimeStatus = useDocumentUploadRealtime(
-    isComplete ? uploadId : null,
-  );
-
-  // Toast when enrichment/embedding complete
-  useEffect(() => {
-    if (realtimeStatus?.enrichmentStatus === "completed") {
-      toast.success("Your health insights are ready");
-      refreshDashboard();
-    }
-  }, [realtimeStatus?.enrichmentStatus, refreshDashboard]);
-
-  useEffect(() => {
-    if (realtimeStatus?.embeddingStatus === "completed") {
-      toast.success("Your health assistant is ready");
-    }
-  }, [realtimeStatus?.embeddingStatus]);
-
-  // Navigate to dashboard after completion
   const handleContinue = useCallback(async () => {
     await refreshUserState();
     navigate("/home");
   }, [refreshUserState, navigate]);
-
-  // Determine if post-processing is fully done
-  const postProcessingDone =
-    realtimeStatus?.enrichmentStatus === "completed" &&
-    realtimeStatus?.embeddingStatus === "completed";
-
-  // Auto-navigate only after extraction AND post-processing are both done
-  useEffect(() => {
-    if (!isComplete || !postProcessingDone) return;
-    const timeout = setTimeout(() => {
-      handleContinue();
-    }, 2000);
-    return () => clearTimeout(timeout);
-  }, [isComplete, postProcessingDone, handleContinue]);
 
   const handleRetry = useCallback(async () => {
     if (uploadId) {
@@ -143,12 +85,6 @@ export function UploadProgressPage() {
       navigate("/upload", { replace: true });
     }
   }, [state, navigate]);
-
-  const postProcessingActive =
-    isComplete &&
-    realtimeStatus &&
-    (realtimeStatus.enrichmentStatus !== "completed" ||
-      realtimeStatus.embeddingStatus !== "completed");
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4 animate-in fade-in duration-300">
@@ -280,45 +216,10 @@ export function UploadProgressPage() {
         })}
       </div>
 
-      {/* Post-processing banner */}
-      {postProcessingActive && (
-        <motion.div
-          initial={prefersReduced ? false : { opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-8 w-full max-w-sm space-y-2"
-        >
-          {realtimeStatus.enrichmentStatus !== "completed" && (
-            <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
-              <Sparkles className="h-4 w-4 shrink-0 text-primary" />
-              <span className="text-sm">Building your health insights...</span>
-              <Loader2 className="ml-auto h-4 w-4 animate-spin text-muted-foreground" />
-            </div>
-          )}
-          {realtimeStatus.embeddingStatus !== "completed" && (
-            <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
-              <MessageSquare className="h-4 w-4 shrink-0 text-primary" />
-              <span className="text-sm">Preparing your health assistant...</span>
-              <Loader2 className="ml-auto h-4 w-4 animate-spin text-muted-foreground" />
-            </div>
-          )}
-        </motion.div>
-      )}
-
       {/* Action buttons */}
       <div className="mt-8">
         {isComplete && (
-          <div className="flex flex-col items-center gap-2">
-            <Button onClick={handleContinue}>
-              {postProcessingDone
-                ? "View your dashboard"
-                : "Continue to dashboard"}
-            </Button>
-            {!postProcessingDone && (
-              <p className="text-xs text-muted-foreground">
-                Insights are still loading — they'll be ready when you arrive
-              </p>
-            )}
-          </div>
+          <Button onClick={handleContinue}>Continue to dashboard</Button>
         )}
 
         {isFailed && (
