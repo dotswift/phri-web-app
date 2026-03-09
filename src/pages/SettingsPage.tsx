@@ -47,7 +47,6 @@ import type { SettingsResponse } from "@/types/api";
 export function SettingsPage() {
   const [settings, setSettings] = useState<SettingsResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [disconnecting, setDisconnecting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [wiping, setWiping] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
@@ -156,20 +155,6 @@ export function SettingsPage() {
     }
   };
 
-  const handleDisconnect = async () => {
-    setDisconnecting(true);
-    try {
-      await api.post("/api/settings/disconnect");
-      await refreshUserState();
-      toast.success("Patient disconnected");
-      navigate("/connect");
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to disconnect");
-    } finally {
-      setDisconnecting(false);
-    }
-  };
-
   const handleDeleteAll = async () => {
     setDeleting(true);
     try {
@@ -219,74 +204,38 @@ export function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Connected Record */}
+      {/* Upload Records */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Connected Record</CardTitle>
-          <CardDescription>Your linked health record persona</CardDescription>
+          <CardTitle className="text-lg">Upload Records</CardTitle>
+          <CardDescription>
+            Upload medical record PDFs to extract and analyze your health data
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {settings.connectedPersona ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="font-medium">
-                  {settings.connectedPersona}
-                </span>
-                <Badge
-                  variant={
-                    settings.patientStatus === "ready" ? "default" : "secondary"
-                  }
-                >
-                  {settings.patientStatus}
-                </Badge>
-              </div>
-              {settings.lastSyncedAt && (
-                <p className="text-sm text-muted-foreground">
-                  Last synced:{" "}
-                  {new Date(settings.lastSyncedAt).toLocaleString()}
-                </p>
-              )}
-            </div>
-          ) : settings.hasPatient ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="font-medium">Upload-only patient</span>
-                <Badge
-                  variant={
-                    settings.patientStatus === "ready" ? "default" : "secondary"
-                  }
-                >
-                  {settings.patientStatus}
-                </Badge>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                No record connected
-              </p>
-              <Link to="/connect">
-                <Button variant="outline" size="sm">
-                  Connect a Persona
-                </Button>
-              </Link>
+          {settings.hasPatient && (
+            <div className="mb-3 flex items-center gap-2">
+              <Badge
+                variant={
+                  settings.patientStatus === "ready" ? "default" : "secondary"
+                }
+              >
+                {settings.patientStatus}
+              </Badge>
             </div>
           )}
 
-          {settings.hasPatient && (
-            <>
-              <Separator className="my-4" />
-              <div className="flex flex-wrap gap-2">
-                <Dialog
-                  open={uploadDialogOpen}
-                  onOpenChange={handleUploadDialogClose}
-                >
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Plus className="mr-1 h-4 w-4" />
-                      Upload PDF
-                    </Button>
-                  </DialogTrigger>
+          <div className="flex flex-wrap gap-2">
+            <Dialog
+              open={uploadDialogOpen}
+              onOpenChange={handleUploadDialogClose}
+            >
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Plus className="mr-1 h-4 w-4" />
+                  Upload PDF
+                </Button>
+              </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Upload Medical Record</DialogTitle>
@@ -450,9 +399,7 @@ export function SettingsPage() {
                   loading={wiping}
                   onConfirm={handleWipeRecords}
                 />
-              </div>
-            </>
-          )}
+          </div>
         </CardContent>
       </Card>
 
@@ -581,31 +528,6 @@ export function SettingsPage() {
       </Card>
 
       <Separator />
-
-      {/* Disconnect */}
-      {settings.connectedPersona && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Disconnect Record</CardTitle>
-            <CardDescription>
-              Removes your patient record, FHIR resources, and embeddings. Chat
-              history is preserved.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ConfirmDialog
-              trigger={
-                <Button variant="outline">Disconnect Patient</Button>
-              }
-              title="Disconnect Patient Record?"
-              description="This will delete your patient record, all health resources, and embeddings. Chat history will be preserved. You can reconnect with a different persona afterward."
-              confirmLabel="Disconnect"
-              loading={disconnecting}
-              onConfirm={handleDisconnect}
-            />
-          </CardContent>
-        </Card>
-      )}
 
       {/* Delete All */}
       <Card className="border-destructive/50">

@@ -1,14 +1,12 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import {
   Home,
   Clock,
   Pill,
   Syringe,
   Settings,
-  LogOut,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
-import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -49,9 +47,6 @@ function SidebarLink({
 }
 
 export function DesktopSidebar() {
-  const { signOut } = useAuth();
-  const navigate = useNavigate();
-
   return (
     <aside className="hidden md:flex w-60 flex-col border-r border-sidebar-border bg-sidebar h-screen fixed left-0 top-0 z-40">
       {/* Logo */}
@@ -73,19 +68,9 @@ export function DesktopSidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-sidebar-border px-3 py-3 space-y-2">
-        <div className="flex items-center justify-between px-1">
+      <div className="border-t border-sidebar-border px-3 py-3">
+        <div className="px-1">
           <ThemeToggle />
-          <button
-            onClick={async () => {
-              await signOut();
-              navigate("/login");
-            }}
-            className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
-          >
-            <LogOut className="size-4" />
-            Sign Out
-          </button>
         </div>
       </div>
     </aside>
