@@ -1,7 +1,5 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import type { ReactNode } from "react";
-import { CitationMarker } from "./CitationMarker";
 import {
   BookOpen,
   Sparkles,
@@ -47,44 +45,9 @@ interface ChatMessageProps {
   isStreaming?: boolean;
 }
 
-/** Inject CitationMarker components into a plain-text string */
-function injectCitations(text: string, citations: ChatCitation[]): ReactNode[] {
-  const parts = text.split(/(\[\d+\])/g);
-  return parts.map((part, i) => {
-    const match = part.match(/\[(\d+)\]/);
-    if (match) {
-      const index = parseInt(match[1], 10);
-      const citation = citations.find((c) => c.index === index);
-      if (citation) {
-        return <CitationMarker key={i} citation={citation} />;
-      }
-    }
-    return part;
-  });
-}
-
-/** Walk ReactMarkdown children and replace citation markers like [1] */
-function replaceCitationsInChildren(
-  children: ReactNode,
-  citations: ChatCitation[]
-): ReactNode {
-  if (typeof children === "string") {
-    const injected = injectCitations(children, citations);
-    // If nothing was replaced, return the original string
-    return injected.length === 1 && typeof injected[0] === "string"
-      ? children
-      : injected;
-  }
-  if (Array.isArray(children)) {
-    return children.map((child, i) =>
-      typeof child === "string" ? (
-        <span key={i}>{injectCitations(child, citations)}</span>
-      ) : (
-        child
-      )
-    );
-  }
-  return children;
+/** Strip inline citation markers like [1], [5], [8] from text */
+function stripCitationMarkers(text: string): string {
+  return text.replace(/\s*\[\d+\]/g, "");
 }
 
 function SourcesDialog({ citations }: { citations: ChatCitation[] }) {
@@ -166,7 +129,8 @@ export function ChatMessage({ role, content, citations, isStreaming }: ChatMessa
 
   // Assistant message
   const hasCitations = citations && citations.length > 0;
-  const displayContent = isStreaming ? trimIncompleteMarkdown(content) : content;
+  const rawContent = isStreaming ? trimIncompleteMarkdown(content) : content;
+  const displayContent = stripCitationMarkers(rawContent);
 
   return (
     <div className="flex justify-start">
@@ -179,35 +143,7 @@ export function ChatMessage({ role, content, citations, isStreaming }: ChatMessa
           </span>
 
           <div className="prose prose-sm max-w-none dark:prose-invert">
-            {hasCitations ? (
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  p: ({ children }) => (
-                    <p>{replaceCitationsInChildren(children, citations)}</p>
-                  ),
-                  li: ({ children }) => (
-                    <li>{replaceCitationsInChildren(children, citations)}</li>
-                  ),
-                  td: ({ children }) => (
-                    <td>{replaceCitationsInChildren(children, citations)}</td>
-                  ),
-                  th: ({ children }) => (
-                    <th>{replaceCitationsInChildren(children, citations)}</th>
-                  ),
-                  strong: ({ children }) => (
-                    <strong>{replaceCitationsInChildren(children, citations)}</strong>
-                  ),
-                  em: ({ children }) => (
-                    <em>{replaceCitationsInChildren(children, citations)}</em>
-                  ),
-                }}
-              >
-                {displayContent}
-              </ReactMarkdown>
-            ) : (
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{displayContent}</ReactMarkdown>
-            )}
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{displayContent}</ReactMarkdown>
             {isStreaming && <span className="ml-0.5 inline-block animate-pulse">|</span>}
           </div>
         </div>
