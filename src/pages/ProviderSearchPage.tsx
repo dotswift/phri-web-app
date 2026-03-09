@@ -21,6 +21,7 @@ import {
   Mail,
   Loader2,
   ArrowLeft,
+  ArrowRight,
   FileUp,
   FileText,
   Printer,
@@ -89,10 +90,12 @@ const CONTACT_ICONS: Record<ContactOption["type"], typeof Phone> = {
   contact_form: FileText,
 };
 
-const CONFIDENCE_STYLES: Record<ContactOption["confidence"], string> = {
-  high: "bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800",
-  medium: "bg-yellow-50 border-yellow-200 dark:bg-yellow-950/30 dark:border-yellow-800",
-  low: "bg-muted border-border",
+const TYPE_LABELS: Record<ContactOption["type"], string> = {
+  phone: "Phone",
+  email: "Email",
+  fax: "Fax",
+  website: "Website",
+  contact_form: "Contact Form",
 };
 
 function ContactLink({ option }: { option: ContactOption }) {
@@ -105,9 +108,7 @@ function ContactLink({ option }: { option: ContactOption }) {
   else if (option.type === "website" || option.type === "contact_form") href = option.value;
 
   return (
-    <div
-      className={`flex items-start gap-3 rounded-lg border p-3 ${CONFIDENCE_STYLES[option.confidence]}`}
-    >
+    <div className="flex items-start gap-3 rounded-lg border p-3">
       <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
       <div className="min-w-0 flex-1">
         {href ? (
@@ -115,14 +116,14 @@ function ContactLink({ option }: { option: ContactOption }) {
             href={href}
             target={option.type === "website" || option.type === "contact_form" ? "_blank" : undefined}
             rel={option.type === "website" || option.type === "contact_form" ? "noopener noreferrer" : undefined}
-            className="text-sm font-medium text-primary hover:underline break-all"
+            className="text-sm font-medium text-foreground hover:underline break-all"
           >
             {option.value}
           </a>
         ) : (
           <span className="text-sm font-medium break-all">{option.value}</span>
         )}
-        <p className="text-xs text-muted-foreground mt-0.5">{option.label}</p>
+        <p className="text-xs text-muted-foreground mt-0.5">{TYPE_LABELS[option.type]}</p>
       </div>
     </div>
   );
@@ -238,7 +239,7 @@ export function ProviderSearchPage() {
           variant="ghost"
           size="sm"
           className="mb-4"
-          onClick={() => navigate("/records-choice")}
+          onClick={() => navigate(-1)}
         >
           <ArrowLeft className="mr-1 h-4 w-4" />
           Back
@@ -408,9 +409,15 @@ export function ProviderSearchPage() {
             <CardContent className="space-y-3">
               {(() => {
                 // Build fallback options from NPI data if enrichment returned nothing
-                const options = enriched.contactOptions.length > 0
+                let options = enriched.contactOptions.length > 0
                   ? enriched.contactOptions
                   : buildNpiFallbackOptions(selectedProvider);
+
+                // Filter out contact_form when an email exists
+                const hasEmail = options.some((o) => o.type === "email");
+                if (hasEmail) {
+                  options = options.filter((o) => o.type !== "contact_form");
+                }
 
                 return options.length > 0 ? (
                   <>
@@ -430,6 +437,25 @@ export function ProviderSearchPage() {
                         <li>Once you receive your records, come back and upload them</li>
                       </ol>
                     </div>
+
+                    <Button
+                      className="w-full mt-4"
+                      onClick={() => {
+                        localStorage.setItem(
+                          "phri_saved_provider",
+                          JSON.stringify({
+                            providerName: enriched!.providerName,
+                            npi: enriched!.npi,
+                            contactOptions: options.map((o) => ({ type: o.type, value: o.value })),
+                            savedAt: new Date().toISOString(),
+                          }),
+                        );
+                        navigate("/home");
+                      }}
+                    >
+                      Continue to your dashboard
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
                   </>
                 ) : (
                   <p className="text-sm text-muted-foreground">

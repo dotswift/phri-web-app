@@ -47,6 +47,7 @@ export interface Citation {
 export interface DashboardResponse {
   patient: {
     id: string;
+    firstName: string | null;
     sandboxPersona: string | null;
     status: string;
     lastSyncedAt: string | null;
