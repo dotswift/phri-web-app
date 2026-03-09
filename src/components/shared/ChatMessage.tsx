@@ -98,11 +98,11 @@ function SourcesDialog({ citations }: { citations: ChatCitation[] }) {
           Sources ({citations.length})
         </button>
       </DialogTrigger>
-      <DialogContent className="max-h-[70vh] overflow-y-auto sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[80vh] flex-col sm:max-w-md">
+        <DialogHeader className="shrink-0">
           <DialogTitle>Sources</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3">
+        <div className="space-y-3 overflow-y-auto">
           {citations.map((c) => {
             const color = FHIR_RESOURCE_COLORS[c.resourceType];
             const Icon = SOURCE_ICONS[c.resourceType];
