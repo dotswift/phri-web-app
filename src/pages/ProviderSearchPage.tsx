@@ -165,7 +165,7 @@ export function ProviderSearchPage() {
   const [enriched, setEnriched] = useState<EnrichmentResult | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<ProviderResult | null>(null);
   const [loadingMessage, setLoadingMessage] = useState(ENRICHMENT_MESSAGES[0]);
-  const messageInterval = useRef<ReturnType<typeof setInterval>>();
+  const messageInterval = useRef<ReturnType<typeof setInterval>>(undefined);
 
   // Cycle through loading messages while enriching
   useEffect(() => {
