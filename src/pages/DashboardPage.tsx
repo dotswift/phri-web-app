@@ -1,4 +1,4 @@
-import { useEffect, useRef, lazy, Suspense } from "react";
+import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Card,
@@ -32,7 +32,19 @@ import {
   Loader2,
   MessageSquare,
   RefreshCw,
+  Download,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { NeedsAttentionCard } from "@/components/dashboard/NeedsAttentionCard";
+import { HealthSnapshotCard } from "@/components/dashboard/HealthSnapshotCard";
+import { DashboardTimeline } from "@/components/dashboard/DashboardTimeline";
+import { ExportPanel } from "@/components/export/ExportPanel";
 
 const InlineChat = lazy(() =>
   import("./ChatPage").then((m) => ({ default: m.InlineChat })),
@@ -64,6 +76,7 @@ export function DashboardPage() {
   } = usePendingUploadStatus();
 
   const { isRebuilding } = useRebuild();
+  const [exportOpen, setExportOpen] = useState(false);
 
   // Track previous values to only toast on transitions, not on mount
   const prevEnrichmentDone = useRef(enrichmentDone);
@@ -126,46 +139,76 @@ export function DashboardPage() {
     // Fixed viewport height minus AppLayout padding — forces chat to scroll internally
     <div className="flex h-[calc(100vh-7rem)] flex-col gap-4 md:h-[calc(100vh-3.5rem)]">
       {/* Greeting + record summary */}
-      <div className="shrink-0">
-        <h1 className="text-2xl font-bold">
-          {getGreeting()}, {firstName}
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          You own <span className="font-semibold text-foreground">{summary.totalResources} health records</span>
-        </p>
+      <div className="shrink-0 flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">
+            {getGreeting()}, {firstName}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            You own <span className="font-semibold text-foreground">{summary.totalResources} health records</span>
+          </p>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => navigate("/provider-search")}
+            title="Search Providers"
+            className="rounded-lg p-2 transition-colors hover:bg-accent"
+          >
+            <Search className="h-5 w-5 text-muted-foreground" />
+          </button>
+          <button
+            onClick={() => setExportOpen(true)}
+            title="Export Data"
+            className="rounded-lg p-2 transition-colors hover:bg-accent"
+          >
+            <Download className="h-5 w-5 text-muted-foreground" />
+          </button>
+        </div>
       </div>
 
-      {/* Record type stat tiles */}
-      {RECORD_TYPES.length > 0 && (
-        <div className="shrink-0 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-          {RECORD_TYPES.map(({ label, count, icon: Icon, color, bg, to }) => (
+      {/* Snapshot cards — fall back to old stat tiles if snapshot missing */}
+      {data.snapshot ? (
+        <>
+          <div className="shrink-0 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <NeedsAttentionCard snapshot={data.snapshot} />
+            <HealthSnapshotCard snapshot={data.snapshot} summary={data.summary} />
+          </div>
+
+          {/* Mini timeline */}
+          <DashboardTimeline />
+        </>
+      ) : (
+        RECORD_TYPES.length > 0 && (
+          <div className="shrink-0 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+            {RECORD_TYPES.map(({ label, count, icon: Icon, color, bg, to }) => (
+              <div
+                key={label}
+                onClick={() => navigate(to)}
+                className="flex cursor-pointer items-center gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-accent"
+              >
+                <div className={`rounded-lg p-1.5 ${bg}`}>
+                  <Icon className={`h-4 w-4 ${color}`} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-lg font-bold leading-tight">{count}</p>
+                  <p className="truncate text-xs text-muted-foreground">{label}</p>
+                </div>
+              </div>
+            ))}
             <div
-              key={label}
-              onClick={() => navigate(to)}
+              onClick={() => navigate("/provider-search")}
               className="flex cursor-pointer items-center gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-accent"
             >
-              <div className={`rounded-lg p-1.5 ${bg}`}>
-                <Icon className={`h-4 w-4 ${color}`} />
+              <div className="rounded-lg p-1.5 bg-slate-100">
+                <Search className="h-4 w-4 text-slate-600" />
               </div>
               <div className="min-w-0">
-                <p className="text-lg font-bold leading-tight">{count}</p>
-                <p className="truncate text-xs text-muted-foreground">{label}</p>
+                <p className="text-xs font-medium leading-tight">Search</p>
+                <p className="text-xs text-muted-foreground leading-tight">Providers & Records</p>
               </div>
             </div>
-          ))}
-          <div
-            onClick={() => navigate("/provider-search")}
-            className="flex cursor-pointer items-center gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-accent"
-          >
-            <div className="rounded-lg p-1.5 bg-slate-100">
-              <Search className="h-4 w-4 text-slate-600" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-medium leading-tight">Search</p>
-              <p className="text-xs text-muted-foreground leading-tight">Providers & Records</p>
-            </div>
           </div>
-        </div>
+        )
       )}
 
       {/* Rebuild banner */}
@@ -214,6 +257,17 @@ export function DashboardPage() {
           <InlineChat />
         </Suspense>
       )}
+
+      {/* Export modal */}
+      <Dialog open={exportOpen} onOpenChange={setExportOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Export Records</DialogTitle>
+            <DialogDescription>Download your health data</DialogDescription>
+          </DialogHeader>
+          <ExportPanel />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
