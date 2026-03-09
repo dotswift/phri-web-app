@@ -161,7 +161,8 @@ export function DashboardPage() {
               <Search className="h-4 w-4 text-slate-600 dark:text-slate-400" />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium">Search Providers & Records</p>
+              <p className="text-xs font-medium leading-tight">Search</p>
+              <p className="text-xs text-muted-foreground leading-tight">Providers & Records</p>
             </div>
           </div>
         </div>
