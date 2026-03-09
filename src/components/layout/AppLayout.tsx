@@ -110,7 +110,7 @@ export function AppLayout() {
       <main
         id="main-content"
         tabIndex={-1}
-        className="flex-1 md:ml-60 mx-auto max-w-5xl px-4 pb-20 pt-8 md:px-6 md:pb-6 md:pt-8 outline-none"
+        className="flex-1 md:ml-60 mx-auto max-w-5xl overflow-x-hidden px-4 pb-20 pt-8 md:px-6 md:pb-6 md:pt-8 outline-none"
       >
         <UploadBanner />
         <AnimatedOutlet />

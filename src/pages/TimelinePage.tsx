@@ -106,7 +106,7 @@ export function TimelinePage() {
   );
 
   return (
-    <div className="space-y-3">
+    <div className="min-w-0 space-y-3">
       {/* Header */}
       <h1 className="text-2xl font-bold">Timeline</h1>
 
@@ -167,13 +167,11 @@ export function TimelinePage() {
         />
       ) : (
         <>
-          {/* Desktop: scatter chart */}
-          <div className="hidden md:block">
+          {/* Desktop: scatter chart + density strip */}
+          <div className="hidden md:block space-y-2">
             <TimelineScatterChart items={filteredItems} />
+            <TimelineDensityStrip items={filteredItems} />
           </div>
-
-          {/* Density strip (all screen sizes) */}
-          <TimelineDensityStrip items={filteredItems} />
 
           {/* List */}
           <TimelineList items={filteredItems} sortBy={sortBy} />
