@@ -22,7 +22,6 @@ export function InlineChat() {
   const {
     messages,
     isStreaming,
-    sessionId,
     sendMessage,
     stopStreaming,
   } = useChat();
