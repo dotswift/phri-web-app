@@ -283,6 +283,7 @@ export interface ChatMessage {
 export type UploadSSEEvent =
   | { type: "upload_created"; uploadId: string }
   | { type: "progress"; step: number; totalSteps: number; description: string; percent: number }
+  | { type: "chunk_complete"; chunksCompleted: number; totalChunks: number; resourceCounts: Record<string, number>; totalExtracted: number }
   | { type: "complete"; uploadId: string; resourceCount: number; resources: Array<{ resourceType: string; displayText: string | null }> }
   | { type: "resumed"; uploadId: string; chunksCompleted: number; totalChunks: number }
   | { type: "error"; error: string };

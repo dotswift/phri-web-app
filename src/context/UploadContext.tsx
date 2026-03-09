@@ -13,6 +13,10 @@ interface UploadContextValue {
   result: UploadResult | null;
   error: string | null;
   uploadId: string | null;
+  resourceCounts: Record<string, number> | null;
+  totalExtracted: number;
+  chunksCompleted: number;
+  totalChunks: number;
   upload: (
     file: File,
     patientInfo: { firstName: string; lastName: string; dob: string },

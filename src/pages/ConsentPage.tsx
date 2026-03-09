@@ -66,7 +66,7 @@ export function ConsentPage() {
         deletionRights: true,
       });
       await refreshUserState();
-      navigate("/connect");
+      navigate("/profile-setup");
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Failed to save consent",

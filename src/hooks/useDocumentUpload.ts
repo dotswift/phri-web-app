@@ -34,6 +34,10 @@ export function useDocumentUpload() {
   const [progress, setProgress] = useState<UploadProgress | null>(null);
   const [result, setResult] = useState<UploadResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [resourceCounts, setResourceCounts] = useState<Record<string, number> | null>(null);
+  const [totalExtracted, setTotalExtracted] = useState(0);
+  const [chunksCompleted, setChunksCompleted] = useState(0);
+  const [totalChunks, setTotalChunks] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
   const uploadIdRef = useRef<string | null>(null);
   const retriesRef = useRef(0);
@@ -53,6 +57,12 @@ export function useDocumentUpload() {
           description: event.description,
           percent: event.percent,
         });
+        break;
+      case "chunk_complete":
+        setChunksCompleted((event as any).chunksCompleted ?? 0);
+        setTotalChunks((event as any).totalChunks ?? 0);
+        setResourceCounts((event as any).resourceCounts ?? null);
+        setTotalExtracted((event as any).totalExtracted ?? 0);
         break;
       case "complete":
         setResult({
@@ -163,6 +173,10 @@ export function useDocumentUpload() {
     setProgress(null);
     setResult(null);
     setError(null);
+    setResourceCounts(null);
+    setTotalExtracted(0);
+    setChunksCompleted(0);
+    setTotalChunks(0);
     uploadIdRef.current = null;
     retriesRef.current = 0;
   }, []);
@@ -173,6 +187,10 @@ export function useDocumentUpload() {
     result,
     error,
     uploadId: uploadIdRef.current,
+    resourceCounts,
+    totalExtracted,
+    chunksCompleted,
+    totalChunks,
     upload,
     resume,
     cancel,

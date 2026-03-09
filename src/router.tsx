@@ -6,6 +6,11 @@ import { LoginPage } from "./pages/LoginPage";
 import { ConsentPage } from "./pages/ConsentPage";
 import { ConnectPage } from "./pages/ConnectPage";
 import { ProgressPage } from "./pages/ProgressPage";
+import { ProfileSetupPage } from "./pages/ProfileSetupPage";
+import { RecordsChoicePage } from "./pages/RecordsChoicePage";
+import { UploadPage } from "./pages/UploadPage";
+import { UploadProgressPage } from "./pages/UploadProgressPage";
+import { ProviderSearchPage } from "./pages/ProviderSearchPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { ChatPage } from "./pages/ChatPage";
 import { SettingsPage } from "./pages/SettingsPage";
@@ -87,7 +92,7 @@ function RequireConsent() {
 function RequirePatient() {
   const { patient, initialLoading } = useAuth();
   if (initialLoading) return <LoadingScreen />;
-  if (!patient) return <Navigate to="/connect" replace />;
+  if (!patient) return <Navigate to="/profile-setup" replace />;
   if (
     patient.status === "querying" ||
     patient.status === "downloading" ||
@@ -104,7 +109,10 @@ function RootRedirect() {
   if (initialLoading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
   if (!consent) return <Navigate to="/consent" replace />;
-  if (!patient) return <Navigate to="/connect" replace />;
+  if (!patient) return <Navigate to="/profile-setup" replace />;
+  if (patient.status === "pending") {
+    return <Navigate to="/records-choice" replace />;
+  }
   if (
     patient.status === "querying" ||
     patient.status === "downloading" ||
@@ -136,6 +144,14 @@ export function AppRouter() {
         <Route path="/consent" element={<ConsentPage />} />
 
         <Route element={<RequireConsent />}>
+          {/* Onboarding flow — no patient required */}
+          <Route path="/profile-setup" element={<ProfileSetupPage />} />
+          <Route path="/records-choice" element={<RecordsChoicePage />} />
+          <Route path="/upload" element={<UploadPage />} />
+          <Route path="/upload/progress" element={<UploadProgressPage />} />
+          <Route path="/provider-search" element={<ProviderSearchPage />} />
+
+          {/* Legacy routes */}
           <Route path="/connect" element={<ConnectPage />} />
           <Route path="/progress" element={<ProgressPage />} />
 
