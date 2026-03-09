@@ -21,7 +21,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/shared/ConfirmDialog";
-import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useHealthData } from "@/context/HealthDataContext";
@@ -31,7 +30,6 @@ import { toast } from "sonner";
 import {
   LogOut,
   User,
-  Trash2,
   Plus,
   Upload,
   Download,
@@ -47,7 +45,6 @@ export function SettingsPage() {
   const [settings, setSettings] = useState<SettingsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
-  const [wiping, setWiping] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -74,23 +71,6 @@ export function SettingsPage() {
   useEffect(() => {
     fetchSettings().finally(() => setLoading(false));
   }, []);
-
-  const handleWipeRecords = async () => {
-    setWiping(true);
-    try {
-      await api.post("/api/settings/wipe-records");
-      await refreshUserState();
-      await fetchSettings();
-      refreshHealthData();
-      toast.success("All records wiped");
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to wipe records",
-      );
-    } finally {
-      setWiping(false);
-    }
-  };
 
   const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
@@ -315,25 +295,6 @@ export function SettingsPage() {
                   </DialogContent>
                 </Dialog>
 
-                <ConfirmDialog
-                  trigger={
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-destructive/50 text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 className="mr-1 h-4 w-4" />
-                      Wipe All Records
-                    </Button>
-                  }
-                  title="Wipe All Records?"
-                  description="This will delete all health resources, embeddings, insights, uploaded documents, and chat history. Your account, consent, and settings will be preserved. The patient will be reset to pending."
-                  confirmLabel="Wipe Records"
-                  destructive
-                  requireTyping="WIPE"
-                  loading={wiping}
-                  onConfirm={handleWipeRecords}
-                />
           </div>
         </CardContent>
       </Card>
@@ -399,22 +360,6 @@ export function SettingsPage() {
           </CardContent>
         </Card>
       )}
-
-      {/* Appearance */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Appearance</CardTitle>
-          <CardDescription>Choose light or dark mode</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            <span className="text-sm text-muted-foreground">
-              Toggle dark mode
-            </span>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* AI Mode */}
       <Card>
