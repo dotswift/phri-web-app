@@ -12,7 +12,6 @@ import { UploadPage } from "./pages/UploadPage";
 import { UploadProgressPage } from "./pages/UploadProgressPage";
 import { ProviderSearchPage } from "./pages/ProviderSearchPage";
 import { DashboardPage } from "./pages/DashboardPage";
-import { ChatPage } from "./pages/ChatPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { RecordsCategoryGrid } from "./pages/RecordsCategoryGrid";
 import { Skeleton } from "./components/ui/skeleton";
@@ -224,7 +223,7 @@ export function AppRouter() {
                   </Suspense>
                 }
               />
-              <Route path="/chat" element={<ChatPage />} />
+              <Route path="/chat" element={<Navigate to="/home" replace />} />
               <Route
                 path="/export"
                 element={

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, lazy, Suspense } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Card,
@@ -15,7 +15,6 @@ import {
   Clock,
   Pill,
   Syringe,
-  MessageSquare,
   ArrowRight,
   AlertTriangle,
   Info,
@@ -29,7 +28,12 @@ import {
   Sparkles,
   BrainCircuit,
   Loader2,
+  MessageSquare,
 } from "lucide-react";
+
+const InlineChat = lazy(() =>
+  import("./ChatPage").then((m) => ({ default: m.InlineChat })),
+);
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -46,30 +50,6 @@ const NAV_CARDS = [
     to: "/timeline",
     color: "text-violet-600 dark:text-violet-400",
     bg: "bg-violet-100 dark:bg-violet-900/30",
-  },
-  {
-    label: "Medications",
-    description: "Insights, duplicates & dosage changes",
-    icon: Pill,
-    to: "/records/medications/insights",
-    color: "text-blue-600 dark:text-blue-400",
-    bg: "bg-blue-100 dark:bg-blue-900/30",
-  },
-  {
-    label: "Immunizations",
-    description: "Vaccine timeline & coverage",
-    icon: Syringe,
-    to: "/records/immunizations",
-    color: "text-emerald-600 dark:text-emerald-400",
-    bg: "bg-emerald-100 dark:bg-emerald-900/30",
-  },
-  {
-    label: "Chat",
-    description: "Ask questions about your records",
-    icon: MessageSquare,
-    to: "/chat",
-    color: "text-amber-600 dark:text-amber-400",
-    bg: "bg-amber-100 dark:bg-amber-900/30",
   },
 ];
 
@@ -180,7 +160,7 @@ export function DashboardPage() {
       )}
 
       {/* Navigation cards */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2">
         {NAV_CARDS.map(({ label, description, icon: Icon, to, color, bg }) => (
           <Link key={to} to={to}>
             <Card className="group h-full transition-all hover:shadow-md hover:-translate-y-0.5">
@@ -307,6 +287,13 @@ export function DashboardPage() {
           </Card>
         </Link>
       </div>
+
+      {/* Inline chat — show when embeddings are ready */}
+      {(!isProcessing || embeddingDone) && (
+        <Suspense fallback={<Skeleton className="h-64" />}>
+          <InlineChat />
+        </Suspense>
+      )}
     </div>
   );
 }

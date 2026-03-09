@@ -38,6 +38,7 @@ import {
   X,
   CheckCircle,
   AlertCircle,
+  FolderOpen,
 } from "lucide-react";
 import type { SettingsResponse } from "@/types/api";
 
@@ -466,6 +467,26 @@ export function SettingsPage() {
               <Button variant="outline">
                 <Download className="mr-1 h-4 w-4" />
                 Export Records
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* View All Records */}
+      {settings.hasPatient && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">All Records</CardTitle>
+            <CardDescription>
+              Browse all your health records by category
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link to="/records">
+              <Button variant="outline">
+                <FolderOpen className="mr-1 h-4 w-4" />
+                View All Records
               </Button>
             </Link>
           </CardContent>

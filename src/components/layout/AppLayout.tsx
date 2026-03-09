@@ -3,10 +3,9 @@ import { AnimatePresence } from "motion/react";
 import { PageTransition } from "@/components/shared/PageTransition";
 import {
   Home,
-  FolderOpen,
-  MessageSquare,
   Clock,
-  Settings,
+  Pill,
+  Syringe,
   Loader2,
 } from "lucide-react";
 import { DesktopSidebar } from "@/components/layout/FloatingNav";
@@ -16,9 +15,8 @@ import { cn } from "@/lib/utils";
 const bottomTabs = [
   { to: "/home", label: "Home", icon: Home },
   { to: "/timeline", label: "Timeline", icon: Clock },
-  { to: "/records", label: "Records", icon: FolderOpen },
-  { to: "/chat", label: "Chat", icon: MessageSquare },
-  { to: "/settings", label: "Settings", icon: Settings },
+  { to: "/records/medications/insights", label: "Medications", icon: Pill },
+  { to: "/records/immunizations", label: "Immunizations", icon: Syringe },
 ];
 
 function MobileBottomBar() {

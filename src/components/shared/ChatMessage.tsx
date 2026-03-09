@@ -2,9 +2,43 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { ReactNode } from "react";
 import { CitationMarker } from "./CitationMarker";
-import { Sparkles } from "lucide-react";
+import {
+  BookOpen,
+  Sparkles,
+  Heart,
+  FileText,
+  Stethoscope,
+  Syringe,
+  Eye,
+  Activity,
+  Pill,
+  AlertTriangle,
+} from "lucide-react";
 import type { ChatCitation } from "@/types/api";
 import { trimIncompleteMarkdown } from "@/lib/markdownStream";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { FHIR_RESOURCE_COLORS } from "@/lib/colors";
+import {
+  useResourceDetail,
+  endpointForResourceType,
+} from "@/context/ResourceDetailContext";
+
+const SOURCE_ICONS: Record<string, React.ElementType> = {
+  Condition: Heart,
+  DiagnosticReport: FileText,
+  Encounter: Stethoscope,
+  Immunization: Syringe,
+  Observation: Eye,
+  Procedure: Activity,
+  MedicationRequest: Pill,
+  AllergyIntolerance: AlertTriangle,
+};
 
 interface ChatMessageProps {
   role: "user" | "assistant";
@@ -58,6 +92,72 @@ function replaceCitationsInChildren(
     );
   }
   return children;
+}
+
+function SourcesDialog({ citations }: { citations: ChatCitation[] }) {
+  const { openResourceDetail } = useResourceDetail();
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <button className="mt-1 inline-flex items-center gap-1 rounded-full border bg-card px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground">
+          <BookOpen className="h-3 w-3" />
+          Sources ({citations.length})
+        </button>
+      </DialogTrigger>
+      <DialogContent className="max-h-[70vh] overflow-y-auto sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Sources</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          {citations.map((c) => {
+            const color = FHIR_RESOURCE_COLORS[c.resourceType];
+            const Icon = SOURCE_ICONS[c.resourceType];
+            return (
+              <div
+                key={c.index}
+                className="rounded-lg border p-3"
+                style={color ? { borderLeftWidth: 4, borderLeftColor: color.badge } : undefined}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="flex h-5 w-5 items-center justify-center rounded bg-primary/10 text-xs font-medium text-primary">
+                    {c.index}
+                  </span>
+                  {Icon && (
+                    <Icon
+                      className="h-3.5 w-3.5"
+                      style={color ? { color: color.badge } : undefined}
+                    />
+                  )}
+                  <span className="text-sm font-medium">{c.resourceType}</span>
+                  {c.date && (
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {new Date(c.date).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-xs italic text-muted-foreground">
+                  "{c.excerpt}"
+                </p>
+                <button
+                  type="button"
+                  className="mt-1.5 text-xs text-primary hover:underline"
+                  onClick={() =>
+                    openResourceDetail(
+                      c.fhirResourceId,
+                      endpointForResourceType(c.resourceType),
+                    )
+                  }
+                >
+                  View record
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 export function ChatMessage({ role, content, citations, isStreaming, onSuggestionClick }: ChatMessageProps) {
@@ -118,19 +218,8 @@ export function ChatMessage({ role, content, citations, isStreaming, onSuggestio
             {isStreaming && <span className="ml-0.5 inline-block animate-pulse">|</span>}
           </div>
         </div>
-        {hasCitations && (
-          <div className="flex flex-wrap gap-1">
-            <span className="text-xs text-muted-foreground">Sources:</span>
-            {citations.map((c) => (
-              <span
-                key={c.index}
-                className="text-xs text-muted-foreground"
-              >
-                [{c.index}] {c.excerpt}
-                {c.index < citations.length ? "," : ""}
-              </span>
-            ))}
-          </div>
+        {hasCitations && !isStreaming && (
+          <SourcesDialog citations={citations} />
         )}
         {/* Follow-up suggestion chips — show only when not streaming and has content */}
         {!isStreaming && content && onSuggestionClick && (

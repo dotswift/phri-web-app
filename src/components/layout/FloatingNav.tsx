@@ -1,18 +1,10 @@
-import { useState, useEffect } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   Home,
   Clock,
   Pill,
   Syringe,
-  FolderOpen,
-  MessageSquare,
   Settings,
-  Heart,
-  FlaskConical,
-  Stethoscope,
-  FileText,
-  ChevronDown,
   LogOut,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
@@ -24,14 +16,6 @@ const navItems = [
   { to: "/timeline", label: "Timeline", icon: Clock },
   { to: "/records/medications/insights", label: "Medications", icon: Pill },
   { to: "/records/immunizations", label: "Immunizations", icon: Syringe },
-];
-
-const recordsSubItems = [
-  { to: "/records/conditions", label: "Conditions", icon: Heart },
-  { to: "/records/lab-results", label: "Lab Results", icon: FlaskConical },
-  { to: "/records/visits", label: "Visits", icon: Stethoscope },
-  { to: "/records/documents", label: "Documents", icon: FileText },
-  { to: "/records", label: "All Records", icon: FolderOpen, end: true },
 ];
 
 function SidebarLink({
@@ -64,49 +48,6 @@ function SidebarLink({
   );
 }
 
-function RecordsSection() {
-  const { pathname } = useLocation();
-  const isInRecords =
-    pathname.startsWith("/records") &&
-    !pathname.startsWith("/records/medications") &&
-    !pathname.startsWith("/records/immunizations");
-  const [open, setOpen] = useState(isInRecords);
-
-  useEffect(() => {
-    if (isInRecords) setOpen(true);
-  }, [isInRecords]);
-
-  return (
-    <div>
-      <button
-        onClick={() => setOpen(!open)}
-        className={cn(
-          "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-          isInRecords
-            ? "text-sidebar-foreground"
-            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
-        )}
-      >
-        <FolderOpen className="size-4 shrink-0" />
-        Records
-        <ChevronDown
-          className={cn(
-            "ml-auto size-4 transition-transform",
-            open && "rotate-180",
-          )}
-        />
-      </button>
-      {open && (
-        <div className="ml-4 mt-0.5 space-y-0.5 border-l border-sidebar-border pl-2">
-          {recordsSubItems.map((item) => (
-            <SidebarLink key={item.to} {...item} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 export function DesktopSidebar() {
   const { signOut } = useAuth();
   const navigate = useNavigate();
@@ -128,8 +69,6 @@ export function DesktopSidebar() {
         {navItems.map((item) => (
           <SidebarLink key={item.to} {...item} />
         ))}
-        <RecordsSection />
-        <SidebarLink to="/chat" label="Chat" icon={MessageSquare} />
         <SidebarLink to="/settings" label="Settings" icon={Settings} />
       </nav>
 
