@@ -7,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -51,9 +50,6 @@ export function SettingsPage() {
   const [wiping, setWiping] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [dob, setDob] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user, signOut, refreshUserState } = useAuth();
   const { refresh: refreshHealthData } = useHealthData();
@@ -110,11 +106,7 @@ export function SettingsPage() {
 
   const handleUploadSubmit = () => {
     if (!selectedFile) return;
-    upload(selectedFile, {
-      firstName: firstName.trim() || "Patient",
-      lastName,
-      dob,
-    });
+    upload(selectedFile, { firstName: "", lastName: "", dob: "" });
   };
 
   const handleUploadDialogClose = (open: boolean) => {
@@ -122,9 +114,6 @@ export function SettingsPage() {
     setUploadDialogOpen(open);
     if (!open) {
       setSelectedFile(null);
-      setFirstName("");
-      setLastName("");
-      setDob("");
       if (fileInputRef.current) fileInputRef.current.value = "";
       resetUpload();
     }
@@ -133,9 +122,6 @@ export function SettingsPage() {
   const handleUploadComplete = () => {
     setUploadDialogOpen(false);
     setSelectedFile(null);
-    setFirstName("");
-    setLastName("");
-    setDob("");
     resetUpload();
     fetchSettings();
     refreshUserState();
@@ -213,18 +199,6 @@ export function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {settings.hasPatient && (
-            <div className="mb-3 flex items-center gap-2">
-              <Badge
-                variant={
-                  settings.patientStatus === "ready" ? "default" : "secondary"
-                }
-              >
-                {settings.patientStatus}
-              </Badge>
-            </div>
-          )}
-
           <div className="flex flex-wrap gap-2">
             <Dialog
               open={uploadDialogOpen}
@@ -260,45 +234,6 @@ export function SettingsPage() {
                             </p>
                           )}
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <Label htmlFor="settings-first-name">
-                              First Name
-                            </Label>
-                            <Input
-                              id="settings-first-name"
-                              value={firstName}
-                              onChange={(e) => setFirstName(e.target.value)}
-                              placeholder="Patient"
-                              className="mt-1"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="settings-last-name">
-                              Last Name
-                            </Label>
-                            <Input
-                              id="settings-last-name"
-                              value={lastName}
-                              onChange={(e) => setLastName(e.target.value)}
-                              className="mt-1"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <Label htmlFor="settings-dob">Date of Birth</Label>
-                          <Input
-                            id="settings-dob"
-                            type="date"
-                            value={dob}
-                            onChange={(e) => setDob(e.target.value)}
-                            className="mt-1"
-                          />
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Patient info is used to remove personal details before
-                          AI processing.
-                        </p>
                         <Button
                           onClick={handleUploadSubmit}
                           disabled={!selectedFile}
