@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -58,15 +58,19 @@ export function UploadProgressPage() {
   const isFailed = state === "error";
   const currentStep = percentToStep(progress?.percent, isComplete);
 
-  // Navigate to dashboard once the first chunk completes
+  // Navigate to dashboard once the first chunk completes or extraction finishes
+  const navigatedRef = useRef(false);
   useEffect(() => {
-    if (chunksCompleted > 0) {
-      refreshUserState().then(() => navigate("/home"));
+    if ((chunksCompleted > 0 || isComplete) && !navigatedRef.current) {
+      navigatedRef.current = true;
+      refreshUserState()
+        .catch(() => {})
+        .finally(() => navigate("/home"));
     }
-  }, [chunksCompleted > 0]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [chunksCompleted, isComplete, refreshUserState, navigate]);
 
   const handleContinue = useCallback(async () => {
-    await refreshUserState();
+    await refreshUserState().catch(() => {});
     navigate("/home");
   }, [refreshUserState, navigate]);
 
