@@ -8,7 +8,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DataProvenance } from "@/components/shared/DataProvenance";
 import { useHealthData } from "@/context/HealthDataContext";
 import { usePendingUploadStatus } from "@/hooks/usePendingUploadStatus";
 import { toast } from "sonner";
@@ -136,7 +135,7 @@ export function DashboardPage() {
     );
   }
 
-  const firstName = data.patient.sandboxPersona?.split(" ")[0] ?? "there";
+  const firstName = data.patient.firstName || "there";
 
   return (
     <div className="space-y-6">
@@ -148,10 +147,6 @@ export function DashboardPage() {
         <p className="text-sm text-muted-foreground">
           {data.summary.totalResources} total resources
         </p>
-        <DataProvenance
-          source={data.patient.sandboxPersona ?? undefined}
-          lastSynced={data.patient.lastSyncedAt}
-        />
       </div>
 
       {/* Processing banners */}
