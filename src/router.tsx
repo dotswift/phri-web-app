@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import { AppLayout } from "./components/layout/AppLayout";
 import { LoginPage } from "./pages/LoginPage";
+import { CheckEmailPage } from "./pages/CheckEmailPage";
 import { ConsentPage } from "./pages/ConsentPage";
 import { ConnectPage } from "./pages/ConnectPage";
 import { ProgressPage } from "./pages/ProgressPage";
@@ -137,6 +138,7 @@ export function AppRouter() {
 
       <Route element={<PublicOnly />}>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/check-email" element={<CheckEmailPage />} />
       </Route>
 
       <Route element={<RequireAuth />}>

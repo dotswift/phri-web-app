@@ -74,7 +74,8 @@ export function LoginPage() {
     try {
       if (isSignUp) {
         await signUp(email, password);
-        toast.success("Account created! You may need to verify your email.");
+        navigate("/check-email", { state: { email }, replace: true });
+        return;
       } else {
         await signIn(email, password);
       }
