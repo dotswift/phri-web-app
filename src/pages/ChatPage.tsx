@@ -10,6 +10,7 @@ import { Send, Phone, Square, Sparkles } from "lucide-react";
 
 /**
  * Inline chat component for embedding on the dashboard.
+ * Uses flex-1 to fill remaining viewport height from its parent.
  */
 export function InlineChat() {
   const {
@@ -46,7 +47,6 @@ export function InlineChat() {
     const messageText = (text ?? input).trim();
     if (!messageText || isStreaming) return;
 
-    // Crisis detection — bypass AI
     const crisisResult = detectCrisis(messageText);
     if (crisisResult.isCrisis) {
       setCrisisDetected(true);
@@ -76,7 +76,7 @@ export function InlineChat() {
   const hasMessages = messages.length > 0;
 
   return (
-    <div className="rounded-lg border bg-card">
+    <div className="flex min-h-0 flex-1 flex-col rounded-lg border bg-card">
       {/* Screen reader streaming status */}
       <div
         ref={statusRef}
@@ -85,17 +85,11 @@ export function InlineChat() {
         className="sr-only"
       />
 
-      {/* Messages area */}
-      <div
-        className={`overflow-y-auto px-4 ${
-          hasMessages
-            ? "min-h-[300px] max-h-[50vh] py-4 md:min-h-[400px] md:max-h-[60vh]"
-            : "py-10 md:py-16"
-        }`}
-      >
-        <div role="log" aria-live="off" className="space-y-4">
+      {/* Messages area — scrollable, fills remaining space */}
+      <div className="flex-1 overflow-y-auto px-4 py-4">
+        <div role="log" aria-live="off" className="flex min-h-full flex-col">
           {!hasMessages && !crisisDetected && (
-            <div className="flex flex-col items-center gap-3 text-center">
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
               <div className="rounded-full bg-primary/10 p-3">
                 <Sparkles className="h-6 w-6 text-primary" />
               </div>
@@ -149,20 +143,24 @@ export function InlineChat() {
             </div>
           )}
 
-          {messages.map((msg, i) => (
-            <ChatMessage
-              key={i}
-              role={msg.role}
-              content={msg.content}
-              citations={msg.citations}
-              isStreaming={isStreaming && i === messages.length - 1 && msg.role === "assistant"}
-            />
-          ))}
-          <div ref={messagesEndRef} />
+          {hasMessages && (
+            <div className="space-y-4">
+              {messages.map((msg, i) => (
+                <ChatMessage
+                  key={i}
+                  role={msg.role}
+                  content={msg.content}
+                  citations={msg.citations}
+                  isStreaming={isStreaming && i === messages.length - 1 && msg.role === "assistant"}
+                />
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Input area */}
+      {/* Input area — pinned to bottom */}
       <div className="border-t px-4 py-3">
         {isStreaming && (
           <div className="mb-2 flex justify-center">

@@ -118,7 +118,8 @@ export function DashboardPage() {
   ].filter((r) => r.count > 0);
 
   return (
-    <div className="space-y-4">
+    // Fill viewport minus AppLayout padding: pt-8 + pb-20 mobile, pt-8 + pb-6 desktop
+    <div className="flex min-h-[calc(100vh-7rem)] flex-col gap-4 md:min-h-[calc(100vh-3.5rem)]">
       {/* Greeting + record summary */}
       <div>
         <h1 className="text-2xl font-bold">
@@ -179,9 +180,9 @@ export function DashboardPage() {
         </div>
       )}
 
-      {/* Inline chat — show when embeddings are ready */}
+      {/* Inline chat — fills remaining viewport height */}
       {(!isProcessing || embeddingDone) && (
-        <Suspense fallback={<Skeleton className="h-64" />}>
+        <Suspense fallback={<Skeleton className="flex-1" />}>
           <InlineChat />
         </Suspense>
       )}
