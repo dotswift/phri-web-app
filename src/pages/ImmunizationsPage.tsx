@@ -119,10 +119,8 @@ export function ImmunizationsPage() {
                 <div className="min-w-0 space-y-1.5">
                   <p className="text-base leading-relaxed">{finding.text}</p>
                   {finding.citations.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {finding.citations.map((c, ci) => (
-                        <CitationBadge key={ci} citation={c} />
-                      ))}
+                    <div>
+                      <CitationBadge citations={finding.citations} />
                     </div>
                   )}
                 </div>
