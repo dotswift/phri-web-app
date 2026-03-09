@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Card,
@@ -9,6 +10,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataProvenance } from "@/components/shared/DataProvenance";
 import { useHealthData } from "@/context/HealthDataContext";
+import { usePostProcessingStatus } from "@/hooks/usePostProcessingStatus";
+import { toast } from "sonner";
 import {
   Clock,
   Pill,
@@ -24,6 +27,8 @@ import {
   Mail,
   Printer,
   Globe,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 
 function getGreeting(): string {
@@ -74,13 +79,41 @@ export function DashboardPage() {
     medInsights,
     immunInsights,
     initialLoading,
+    refreshDashboard,
   } = useHealthData();
+
+  const { isProcessing, enrichmentDone, embeddingDone } =
+    usePostProcessingStatus();
+
+  // Track previous values to only toast on transitions, not on mount
+  const prevEnrichmentDone = useRef(enrichmentDone);
+  const prevEmbeddingDone = useRef(embeddingDone);
+
+  useEffect(() => {
+    if (enrichmentDone && !prevEnrichmentDone.current) {
+      toast.success("Your health insights are ready");
+      refreshDashboard();
+    }
+    prevEnrichmentDone.current = enrichmentDone;
+  }, [enrichmentDone, refreshDashboard]);
+
+  useEffect(() => {
+    if (embeddingDone && !prevEmbeddingDone.current) {
+      toast.success("Your health assistant is ready");
+    }
+    prevEmbeddingDone.current = embeddingDone;
+  }, [embeddingDone]);
 
   if (initialLoading) return <DashboardSkeleton />;
   if (!data) return null;
 
   if (data.summary.totalResources === 0) {
-    return <DashboardEmpty firstName={data.patient.firstName} />;
+    return (
+      <DashboardEmpty
+        firstName={data.patient.firstName}
+        isProcessing={isProcessing}
+      />
+    );
   }
 
   const firstName = data.patient.sandboxPersona?.split(" ")[0] ?? "there";
@@ -100,6 +133,26 @@ export function DashboardPage() {
           lastSynced={data.patient.lastSyncedAt}
         />
       </div>
+
+      {/* Processing banner */}
+      {isProcessing && (
+        <div className="space-y-2">
+          {!enrichmentDone && (
+            <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
+              <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+              <span className="text-sm">Building your health insights...</span>
+              <Loader2 className="ml-auto h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          )}
+          {!embeddingDone && (
+            <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
+              <MessageSquare className="h-4 w-4 shrink-0 text-primary" />
+              <span className="text-sm">Preparing your health assistant...</span>
+              <Loader2 className="ml-auto h-4 w-4 animate-spin text-muted-foreground" />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Navigation cards */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -247,7 +300,13 @@ const SAVED_CONTACT_ICONS: Record<string, typeof Phone> = {
   website: Globe,
 };
 
-function DashboardEmpty({ firstName }: { firstName: string | null }) {
+function DashboardEmpty({
+  firstName,
+  isProcessing = false,
+}: {
+  firstName: string | null;
+  isProcessing?: boolean;
+}) {
   const navigate = useNavigate();
   const savedRaw = localStorage.getItem("phri_saved_provider");
   const savedProvider: SavedProvider | null = savedRaw
@@ -269,6 +328,14 @@ function DashboardEmpty({ firstName }: { firstName: string | null }) {
       </p>
 
       <div className="mt-8 w-full max-w-lg space-y-4">
+        {isProcessing && (
+          <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" />
+            <span className="text-sm text-muted-foreground">
+              Your records are being processed — insights will appear shortly
+            </span>
+          </div>
+        )}
         {savedProvider && (
           <Card>
             <CardHeader className="pb-2">

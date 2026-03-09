@@ -65,6 +65,13 @@ export function UploadProgressPage() {
   const isFailed = state === "error";
   const currentStep = percentToStep(progress?.percent, isComplete);
 
+  // Persist uploadId so dashboard can subscribe to post-processing status
+  useEffect(() => {
+    if (isComplete && uploadId) {
+      localStorage.setItem("phri_pending_upload_id", uploadId);
+    }
+  }, [isComplete, uploadId]);
+
   // Phase B: transition to dashboard view after first chunk_complete
   const [showDashboard, setShowDashboard] = useState(false);
 
