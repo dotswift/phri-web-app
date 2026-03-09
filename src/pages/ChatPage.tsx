@@ -6,11 +6,10 @@ import { useChat } from "@/hooks/useChat";
 import { useChatAccessibility } from "@/hooks/useChatAccessibility";
 import { detectCrisis, CRISIS_MESSAGE } from "@/lib/crisis-detection";
 import { ApiError } from "@/lib/api";
-import { Send, MessageSquare, Phone, Square } from "lucide-react";
+import { Send, Phone, Square, Sparkles } from "lucide-react";
 
 /**
  * Inline chat component for embedding on the dashboard.
- * No sidebar, no full-page layout — just the chat interface.
  */
 export function InlineChat() {
   const {
@@ -74,6 +73,8 @@ export function InlineChat() {
 
   if (aiDisabled) return null;
 
+  const hasMessages = messages.length > 0;
+
   return (
     <div className="rounded-lg border bg-card">
       {/* Screen reader streaming status */}
@@ -84,20 +85,27 @@ export function InlineChat() {
         className="sr-only"
       />
 
-      {/* Header */}
-      <div className="flex items-center gap-2 border-b px-4 py-3">
-        <MessageSquare className="h-4 w-4 text-muted-foreground" />
-        <h2 className="text-sm font-semibold">Ask about your records</h2>
-      </div>
-
       {/* Messages area */}
-      <div className="max-h-[300px] overflow-y-auto p-4 sm:max-h-[400px]">
+      <div
+        className={`overflow-y-auto px-4 ${
+          hasMessages
+            ? "min-h-[200px] max-h-[60vh] py-4"
+            : "py-8"
+        }`}
+      >
         <div role="log" aria-live="off" className="space-y-4">
-          {messages.length === 0 && !crisisDetected && (
-            <div className="flex flex-col items-center py-6 text-center">
-              <p className="text-sm text-muted-foreground">
-                Ask a question about your health records
-              </p>
+          {!hasMessages && !crisisDetected && (
+            <div className="flex flex-col items-center gap-3 text-center">
+              <div className="rounded-full bg-primary/10 p-3">
+                <Sparkles className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold">Your health assistant</h2>
+                <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+                  Ask questions about your conditions, medications, lab results,
+                  immunizations, or anything in your health records.
+                </p>
+              </div>
             </div>
           )}
 
@@ -179,7 +187,7 @@ export function InlineChat() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask about your health records..."
-            className="min-h-[40px] resize-none"
+            className="min-h-[44px] resize-none"
             rows={1}
             disabled={isStreaming}
           />
@@ -187,6 +195,7 @@ export function InlineChat() {
             onClick={() => handleSend()}
             disabled={!input.trim() || isStreaming}
             size="icon"
+            className="h-[44px] w-[44px]"
             aria-label="Send message"
           >
             <Send className="h-4 w-4" />
