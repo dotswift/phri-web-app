@@ -24,14 +24,28 @@ import {
   FileUp,
 } from "lucide-react";
 
+interface NpiAddress {
+  line1: string;
+  line2: string | null;
+  city: string;
+  state: string;
+  postalCode: string;
+  phone: string | null;
+  fax: string | null;
+}
+
+interface NpiSpecialty {
+  code: string;
+  description: string;
+  isPrimary: boolean;
+}
+
 interface ProviderResult {
   npi: string;
   name: string;
-  specialty?: string;
-  address?: string;
-  city?: string;
-  state?: string;
-  phone?: string;
+  specialties: NpiSpecialty[];
+  practiceAddress: NpiAddress | null;
+  mailingAddress: NpiAddress | null;
 }
 
 interface EnrichedProvider {
@@ -71,10 +85,10 @@ export function ProviderSearchPage() {
         params.set("type", "individual");
         params.set("limit", "10");
 
-        const data = await api.get<{ results: ProviderResult[] }>(
+        const data = await api.get<{ count: number; providers: ProviderResult[] }>(
           `/api/providers/search?${params}`,
         );
-        setResults(data.results || []);
+        setResults(data.providers || []);
       } catch (err) {
         toast.error(
           err instanceof Error ? err.message : "Search failed",
@@ -203,18 +217,20 @@ export function ProviderSearchPage() {
               <Card key={provider.npi}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base">{provider.name}</CardTitle>
-                  {provider.specialty && (
-                    <CardDescription>{provider.specialty}</CardDescription>
+                  {provider.specialties.length > 0 && (
+                    <CardDescription>
+                      {provider.specialties.map((s) => s.description).join(", ")}
+                    </CardDescription>
                   )}
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      {(provider.city || provider.state) && (
+                      {provider.practiceAddress && (
                         <>
                           <MapPin className="h-3.5 w-3.5" />
                           <span>
-                            {[provider.city, provider.state]
+                            {[provider.practiceAddress.city, provider.practiceAddress.state]
                               .filter(Boolean)
                               .join(", ")}
                           </span>
