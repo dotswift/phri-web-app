@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,19 +9,55 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { TrustBadges } from "@/components/shared/TrustBadges";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { ShieldCheck } from "lucide-react";
 
+const MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+function daysInMonth(month: number, year: number): number {
+  if (!month || !year) return 31;
+  return new Date(year, month, 0).getDate();
+}
+
 export function ProfileSetupPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [dobMonth, setDobMonth] = useState("");
+  const [dobDay, setDobDay] = useState("");
+  const [dobYear, setDobYear] = useState("");
   const [loading, setLoading] = useState(false);
   const { refreshUserState } = useAuth();
   const navigate = useNavigate();
+
+  const currentYear = new Date().getFullYear();
+  const years = useMemo(
+    () => Array.from({ length: currentYear - 1900 }, (_, i) => currentYear - 1 - i),
+    [currentYear],
+  );
+
+  const maxDay = daysInMonth(Number(dobMonth), Number(dobYear));
+  // Reset day if it exceeds the max for the selected month/year
+  if (dobDay && Number(dobDay) > maxDay) {
+    setDobDay("");
+  }
+
+  const dateOfBirth =
+    dobMonth && dobDay && dobYear
+      ? `${dobYear}-${dobMonth.padStart(2, "0")}-${dobDay.padStart(2, "0")}`
+      : "";
 
   const isValid = firstName.trim() && lastName.trim() && dateOfBirth;
 
@@ -87,14 +123,45 @@ export function ProfileSetupPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="dob">Date of Birth</Label>
-              <Input
-                id="dob"
-                type="date"
-                value={dateOfBirth}
-                onChange={(e) => setDateOfBirth(e.target.value)}
-                required
-              />
+              <Label>Date of Birth</Label>
+              <div className="grid grid-cols-3 gap-2">
+                <Select value={dobMonth} onValueChange={setDobMonth}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MONTHS.map((name, i) => (
+                      <SelectItem key={name} value={String(i + 1)}>
+                        {name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={dobDay} onValueChange={setDobDay}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Day" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: maxDay }, (_, i) => (
+                      <SelectItem key={i + 1} value={String(i + 1)}>
+                        {i + 1}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={dobYear} onValueChange={setDobYear}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((y) => (
+                      <SelectItem key={y} value={String(y)}>
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
