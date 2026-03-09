@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -286,48 +285,34 @@ export function DocumentsPage() {
         <div className="space-y-2">
           {data.documents.map((doc) => (
             <Card key={doc.id}>
-              <CardContent className="flex items-center justify-between gap-3 p-3">
+              <CardContent className="flex items-center gap-3 p-3">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">
                     {getDocumentTitle(doc)}
                   </p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    {doc.source === "upload" && <Badge variant="secondary" className="text-[10px] px-1 py-0">Uploaded</Badge>}
-                    {doc.mimeType && <span>{doc.mimeType}</span>}
-                    {doc.size != null && <span>{formatBytes(doc.size)}</span>}
-                    {doc.indexed && (
-                      <span>
-                        {new Date(doc.indexed).toLocaleDateString()}
-                      </span>
-                    )}
-                    {doc.extractedCount != null && doc.source === "upload" && (
-                      <span>{doc.extractedCount} records</span>
-                    )}
-                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {[
+                      doc.indexed && new Date(doc.indexed).toLocaleDateString(),
+                      doc.extractedCount != null && doc.source === "upload" && `${doc.extractedCount} records`,
+                    ].filter(Boolean).join(" · ") || "\u00A0"}
+                  </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  {doc.status && (
-                    <Badge variant="outline" className="text-xs">
-                      {doc.status}
-                    </Badge>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  disabled={viewingId === doc.id || (doc.source === "upload" && !doc.fileUrl)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleViewDocument(doc);
+                  }}
+                >
+                  {viewingId === doc.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ExternalLink className="h-4 w-4" />
                   )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={viewingId === doc.id || (doc.source === "upload" && !doc.fileUrl)}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleViewDocument(doc);
-                    }}
-                  >
-                    {viewingId === doc.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <ExternalLink className="h-4 w-4" />
-                    )}
-                    View
-                  </Button>
-                </div>
+                </Button>
               </CardContent>
             </Card>
           ))}
