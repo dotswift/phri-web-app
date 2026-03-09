@@ -128,6 +128,31 @@ function ContactLink({ option }: { option: ContactOption }) {
   );
 }
 
+function buildNpiFallbackOptions(provider: ProviderResult | null): ContactOption[] {
+  if (!provider) return [];
+  const options: ContactOption[] = [];
+  const addr = provider.practiceAddress || provider.mailingAddress;
+  if (addr?.phone) {
+    options.push({
+      type: "phone",
+      value: addr.phone,
+      label: "Office phone (NPPES registry)",
+      source: "nppes",
+      confidence: "medium",
+    });
+  }
+  if (addr?.fax) {
+    options.push({
+      type: "fax",
+      value: addr.fax,
+      label: "Office fax (NPPES registry)",
+      source: "nppes",
+      confidence: "medium",
+    });
+  }
+  return options;
+}
+
 export function ProviderSearchPage() {
   const navigate = useNavigate();
   const [lastName, setLastName] = useState("");
@@ -138,6 +163,7 @@ export function ProviderSearchPage() {
   const [results, setResults] = useState<ProviderResult[] | null>(null);
   const [enriching, setEnriching] = useState<string | null>(null);
   const [enriched, setEnriched] = useState<EnrichmentResult | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<ProviderResult | null>(null);
   const [loadingMessage, setLoadingMessage] = useState(ENRICHMENT_MESSAGES[0]);
   const messageInterval = useRef<ReturnType<typeof setInterval>>();
 
@@ -187,9 +213,10 @@ export function ProviderSearchPage() {
     [lastName, firstName, city, stateCode],
   );
 
-  const handleEnrich = useCallback(async (npi: string) => {
+  const handleEnrich = useCallback(async (npi: string, provider: ProviderResult) => {
     setEnriching(npi);
     setEnriched(null);
+    setSelectedProvider(provider);
     try {
       const data = await api.get<EnrichmentResult>(
         `/api/providers/${npi}/enrich`,
@@ -329,7 +356,7 @@ export function ProviderSearchPage() {
                       size="sm"
                       variant="outline"
                       disabled={enriching === provider.npi}
-                      onClick={() => handleEnrich(provider.npi)}
+                      onClick={() => handleEnrich(provider.npi, provider)}
                     >
                       {enriching === provider.npi ? (
                         <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
@@ -379,30 +406,37 @@ export function ProviderSearchPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {enriched.contactOptions.length > 0 ? (
-                <>
-                  <div className="space-y-2">
-                    {enriched.contactOptions.map((option, i) => (
-                      <ContactLink key={`${option.type}-${i}`} option={option} />
-                    ))}
-                  </div>
+              {(() => {
+                // Build fallback options from NPI data if enrichment returned nothing
+                const options = enriched.contactOptions.length > 0
+                  ? enriched.contactOptions
+                  : buildNpiFallbackOptions(selectedProvider);
 
-                  <div className="mt-4 rounded-md bg-muted p-3 text-sm text-muted-foreground">
-                    <p className="font-medium text-foreground mb-1">
-                      How to request your records:
-                    </p>
-                    <ol className="list-decimal list-inside space-y-1 text-xs">
-                      <li>Call or email the provider's medical records department</li>
-                      <li>Request a copy of your complete medical records in PDF format</li>
-                      <li>Once you receive your records, come back and upload them</li>
-                    </ol>
-                  </div>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  Try contacting the provider directly using the phone number from the search results above.
-                </p>
-              )}
+                return options.length > 0 ? (
+                  <>
+                    <div className="space-y-2">
+                      {options.map((option, i) => (
+                        <ContactLink key={`${option.type}-${i}`} option={option} />
+                      ))}
+                    </div>
+
+                    <div className="mt-4 rounded-md bg-muted p-3 text-sm text-muted-foreground">
+                      <p className="font-medium text-foreground mb-1">
+                        How to request your records:
+                      </p>
+                      <ol className="list-decimal list-inside space-y-1 text-xs">
+                        <li>Call or email the provider's medical records department</li>
+                        <li>Request a copy of your complete medical records in PDF format</li>
+                        <li>Once you receive your records, come back and upload them</li>
+                      </ol>
+                    </div>
+                  </>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    We couldn't find contact information for this provider. Try searching for their office directly.
+                  </p>
+                );
+              })()}
             </CardContent>
           </Card>
         )}
