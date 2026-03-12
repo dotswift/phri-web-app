@@ -20,6 +20,10 @@ export default defineConfig(({ mode }) => {
           target: apiUrl,
           changeOrigin: true,
         },
+        "/epic": {
+          target: apiUrl,
+          changeOrigin: true,
+        },
       },
     },
     build: {

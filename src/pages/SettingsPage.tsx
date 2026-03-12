@@ -38,6 +38,9 @@ import {
   AlertCircle,
   FolderOpen,
   RefreshCw,
+  Hospital,
+  Unplug,
+  AlertTriangle,
 } from "lucide-react";
 import type { SettingsResponse } from "@/types/api";
 
@@ -45,6 +48,8 @@ export function SettingsPage() {
   const [settings, setSettings] = useState<SettingsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [disconnectingEpic, setDisconnectingEpic] = useState(false);
+  const [connectingEpic, setConnectingEpic] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -132,6 +137,42 @@ export function SettingsPage() {
       toast.error(err instanceof Error ? err.message : "Failed to delete data");
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleEpicConnect = async () => {
+    setConnectingEpic(true);
+    try {
+      const { url } = await api.get<{ url: string }>("/epic/authorize");
+      window.location.href = url;
+    } catch {
+      toast.error("Failed to start Epic connection");
+      setConnectingEpic(false);
+    }
+  };
+
+  const handleEpicResync = async () => {
+    try {
+      await api.post("/api/epic/sync");
+      toast.success("Sync started");
+      navigate("/epic/progress");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to start sync");
+    }
+  };
+
+  const handleEpicDisconnect = async () => {
+    setDisconnectingEpic(true);
+    try {
+      await api.post("/api/epic/disconnect");
+      await refreshUserState();
+      refreshHealthData();
+      fetchSettings();
+      toast.success("Epic disconnected");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to disconnect");
+    } finally {
+      setDisconnectingEpic(false);
     }
   };
 
@@ -296,6 +337,95 @@ export function SettingsPage() {
                 </Dialog>
 
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Epic MyChart */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Epic MyChart</CardTitle>
+          <CardDescription>
+            {settings.epicConnected
+              ? "Connected to your healthcare provider"
+              : "Import records directly from your healthcare provider via Epic"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {settings.epicConnected ? (
+            <div className="space-y-3">
+              {settings.epicTokenExpired && (
+                <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-900 dark:bg-amber-950">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600" />
+                  <div>
+                    <p className="font-medium text-amber-800 dark:text-amber-200">
+                      Session expired
+                    </p>
+                    <p className="text-amber-700 dark:text-amber-300">
+                      Reconnect to continue syncing records.
+                    </p>
+                  </div>
+                </div>
+              )}
+              {settings.epicLastSyncAt && (
+                <p className="text-sm text-muted-foreground">
+                  Last synced:{" "}
+                  {new Date(settings.epicLastSyncAt).toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                </p>
+              )}
+              <div className="flex flex-wrap gap-2">
+                {settings.epicTokenExpired ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleEpicConnect}
+                    disabled={connectingEpic}
+                  >
+                    <Hospital className="mr-1 h-4 w-4" />
+                    {connectingEpic ? "Connecting\u2026" : "Reconnect"}
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="sm" onClick={handleEpicResync}>
+                    <RefreshCw className="mr-1 h-4 w-4" />
+                    Re-sync Records
+                  </Button>
+                )}
+                <ConfirmDialog
+                  trigger={
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={disconnectingEpic}
+                    >
+                      <Unplug className="mr-1 h-4 w-4" />
+                      {disconnectingEpic ? "Disconnecting\u2026" : "Disconnect"}
+                    </Button>
+                  }
+                  title="Disconnect Epic MyChart?"
+                  description="This will remove all Epic-sourced health records, embeddings, and cached insights. Records from other sources will not be affected."
+                  confirmLabel="Disconnect"
+                  destructive
+                  loading={disconnectingEpic}
+                  onConfirm={handleEpicDisconnect}
+                />
+              </div>
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleEpicConnect}
+              disabled={connectingEpic}
+            >
+              <Hospital className="mr-1 h-4 w-4" />
+              {connectingEpic ? "Connecting\u2026" : "Connect Epic"}
+            </Button>
+          )}
         </CardContent>
       </Card>
 

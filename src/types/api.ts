@@ -358,6 +358,22 @@ export type ExportSection =
   | "observations"
   | "diagnosticReports";
 
+// --- Epic ---
+export interface EpicStatus {
+  connected: boolean;
+  syncing: boolean;
+  patientFhirId?: string;
+  lastSyncAt: string | null;
+  tokenExpiresAt?: string;
+  tokenExpired?: boolean;
+  syncProgress?: {
+    total: number;
+    completed: number;
+    errors: string[];
+  };
+  resourceCounts?: Record<string, number>;
+}
+
 // --- Settings ---
 export interface SettingsResponse {
   aiModeEnabled: boolean;
@@ -365,4 +381,8 @@ export interface SettingsResponse {
   hasPatient: boolean;
   patientStatus: string | null;
   lastSyncedAt: string | null;
+  epicConnected: boolean;
+  epicPatientId: string | null;
+  epicLastSyncAt: string | null;
+  epicTokenExpired: boolean;
 }

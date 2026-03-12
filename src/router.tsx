@@ -12,6 +12,7 @@ import { RecordsChoicePage } from "./pages/RecordsChoicePage";
 import { UploadPage } from "./pages/UploadPage";
 import { UploadProgressPage } from "./pages/UploadProgressPage";
 import { ProviderSearchPage } from "./pages/ProviderSearchPage";
+import { EpicProgressPage } from "./pages/EpicProgressPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { RecordsCategoryGrid } from "./pages/RecordsCategoryGrid";
@@ -151,6 +152,7 @@ export function AppRouter() {
           <Route path="/upload" element={<UploadPage />} />
           <Route path="/upload/progress" element={<UploadProgressPage />} />
           <Route path="/provider-search" element={<ProviderSearchPage />} />
+          <Route path="/epic/progress" element={<EpicProgressPage />} />
 
           {/* Legacy routes */}
           <Route path="/connect" element={<ConnectPage />} />
