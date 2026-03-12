@@ -370,6 +370,7 @@ export interface EpicStatus {
     total: number;
     completed: number;
     errors: string[];
+    completedCategories: Array<{ label: string; count: number }>;
   };
   resourceCounts?: Record<string, number>;
 }
