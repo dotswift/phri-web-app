@@ -9,7 +9,6 @@ import {
   Check,
   AlertCircle,
   Minus,
-  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEpicStatus } from "@/hooks/useEpicStatus";
@@ -97,6 +96,10 @@ export function EpicProgressPage() {
     if (isError) return;
 
     const drain = () => {
+      // Skip unavailable categories (count === -1)
+      while (queueRef.current.length > 0 && queueRef.current[0].count < 0) {
+        queueRef.current.shift();
+      }
       if (queueRef.current.length > 0) {
         const next = queueRef.current.shift()!;
         setRevealedCategories((prev) => [...prev, next]);
@@ -241,37 +244,39 @@ export function EpicProgressPage() {
 
                   {/* Category feed for download step */}
                   {(isActive || isCompleted) && i === 1 && revealedCategories.length > 0 && (
-                    <div className="mt-2 max-h-48 overflow-y-auto space-y-1 pr-1">
-                      <AnimatePresence initial={false}>
-                        {revealedCategories.map((cat) => (
-                          <motion.div
-                            key={cat.label}
-                            initial={prefersReduced ? false : { opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.3 }}
-                            className="flex items-center gap-2 text-xs"
-                          >
-                            {cat.count > 0 ? (
-                              <Check className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                            ) : cat.count === 0 ? (
-                              <Minus className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                            ) : (
-                              <AlertTriangle className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
-                            )}
-                            <span className={cat.count < 0 ? "text-muted-foreground" : "text-foreground"}>
-                              {cat.label}
-                            </span>
-                            <span className="text-muted-foreground">
-                              {cat.count > 0
-                                ? `\u2014 ${cat.count} record${cat.count !== 1 ? "s" : ""}`
-                                : cat.count === 0
-                                  ? "\u2014 no data"
-                                  : "\u2014 unavailable"}
-                            </span>
-                          </motion.div>
-                        ))}
-                      </AnimatePresence>
-                      <div ref={feedEndRef} />
+                    <div className="relative mt-2">
+                      {/* Top gradient fade */}
+                      <div className="pointer-events-none absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-background to-transparent z-10" />
+                      <div className="max-h-48 overflow-y-auto scrollbar-hide space-y-1 pr-1 pt-6"
+                        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                      >
+                        <AnimatePresence initial={false}>
+                          {revealedCategories.map((cat) => (
+                            <motion.div
+                              key={cat.label}
+                              initial={prefersReduced ? false : { opacity: 0, y: 8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.3 }}
+                              className="flex items-center gap-2 text-xs"
+                            >
+                              {cat.count > 0 ? (
+                                <Check className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                              ) : (
+                                <Minus className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              )}
+                              <span className="text-foreground">
+                                {cat.label}
+                              </span>
+                              <span className="text-muted-foreground">
+                                {cat.count > 0
+                                  ? `\u2014 ${cat.count} record${cat.count !== 1 ? "s" : ""}`
+                                  : "\u2014 no data"}
+                              </span>
+                            </motion.div>
+                          ))}
+                        </AnimatePresence>
+                        <div ref={feedEndRef} />
+                      </div>
                     </div>
                   )}
 
