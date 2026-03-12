@@ -8,6 +8,8 @@ import {
   CircleCheckBig,
   Check,
   AlertCircle,
+  Minus,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEpicStatus } from "@/hooks/useEpicStatus";
@@ -40,14 +42,21 @@ const STEPS = [
 
 const MIN_STEP_MS = 2000;
 const READY_HOLD_MS = 1500;
+const REVEAL_INTERVAL_MS = 700;
 
-function epicToStep(epicStatus: ReturnType<typeof useEpicStatus>): number {
+type CompletedCategory = { label: string; count: number };
+
+function epicToStep(
+  epicStatus: ReturnType<typeof useEpicStatus>,
+  queueDrained: boolean
+): number {
   if (!epicStatus) return 0;
   if (epicStatus.syncing && epicStatus.syncProgress) {
     return epicStatus.syncProgress.completed > 0 ? 1 : 0;
   }
   if (!epicStatus.syncing && epicStatus.connected) {
-    return 3; // Sync done
+    // Don't advance past step 1 until reveal queue is drained
+    return queueDrained ? 3 : 1;
   }
   return 0;
 }
@@ -64,7 +73,41 @@ export function EpicProgressPage() {
   const isError = callbackStatus === "error";
   const epicStatus = useEpicStatus(isError ? 0 : 3000);
 
-  const backendStep = isError ? 0 : epicToStep(epicStatus);
+  // Queue-based category reveal
+  const [revealedCategories, setRevealedCategories] = useState<CompletedCategory[]>([]);
+  const queueRef = useRef<CompletedCategory[]>([]);
+  const seenLabelsRef = useRef<Set<string>>(new Set());
+  const queueDrained = queueRef.current.length === 0;
+
+  // Diff incoming completedCategories against seen, push new items to queue
+  useEffect(() => {
+    const incoming = epicStatus?.syncProgress?.completedCategories;
+    if (!incoming) return;
+
+    for (const cat of incoming) {
+      if (!seenLabelsRef.current.has(cat.label)) {
+        seenLabelsRef.current.add(cat.label);
+        queueRef.current.push(cat);
+      }
+    }
+  }, [epicStatus?.syncProgress?.completedCategories]);
+
+  // Drain queue one item at a time with REVEAL_INTERVAL_MS delay
+  useEffect(() => {
+    if (isError) return;
+
+    const drain = () => {
+      if (queueRef.current.length > 0) {
+        const next = queueRef.current.shift()!;
+        setRevealedCategories((prev) => [...prev, next]);
+      }
+    };
+
+    const interval = setInterval(drain, REVEAL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [isError]);
+
+  const backendStep = isError ? 0 : epicToStep(epicStatus, queueDrained);
   const [displayStep, setDisplayStep] = useState(0);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const refreshedRef = useRef(false);
@@ -114,11 +157,11 @@ export function EpicProgressPage() {
     navigate("/records-choice");
   }, [navigate]);
 
-  // Build sub-label for downloading step
-  const subLabel =
-    epicStatus?.syncing && epicStatus.syncProgress
-      ? `${epicStatus.syncProgress.completed} of ${epicStatus.syncProgress.total} categories`
-      : undefined;
+  // Auto-scroll the category feed
+  const feedEndRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    feedEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [revealedCategories.length]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4 animate-in fade-in duration-300">
@@ -187,7 +230,7 @@ export function EpicProgressPage() {
                   </div>
                 </div>
 
-                <div className="pt-2 min-w-0">
+                <div className="pt-2 min-w-0 flex-1">
                   <p
                     className={`text-sm font-medium leading-tight ${
                       isUpcoming && !isErrorStep ? "text-muted-foreground" : "text-foreground"
@@ -196,9 +239,40 @@ export function EpicProgressPage() {
                     {isErrorStep ? "Connection failed" : step.label}
                   </p>
 
-                  {/* Sub-label for download progress */}
-                  {isActive && i === 1 && subLabel && (
-                    <p className="mt-0.5 text-xs text-primary font-medium">{subLabel}</p>
+                  {/* Category feed for download step */}
+                  {(isActive || isCompleted) && i === 1 && revealedCategories.length > 0 && (
+                    <div className="mt-2 max-h-48 overflow-y-auto space-y-1 pr-1">
+                      <AnimatePresence initial={false}>
+                        {revealedCategories.map((cat) => (
+                          <motion.div
+                            key={cat.label}
+                            initial={prefersReduced ? false : { opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="flex items-center gap-2 text-xs"
+                          >
+                            {cat.count > 0 ? (
+                              <Check className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                            ) : cat.count === 0 ? (
+                              <Minus className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                            ) : (
+                              <AlertTriangle className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+                            )}
+                            <span className={cat.count < 0 ? "text-muted-foreground" : "text-foreground"}>
+                              {cat.label}
+                            </span>
+                            <span className="text-muted-foreground">
+                              {cat.count > 0
+                                ? `\u2014 ${cat.count} record${cat.count !== 1 ? "s" : ""}`
+                                : cat.count === 0
+                                  ? "\u2014 no data"
+                                  : "\u2014 unavailable"}
+                            </span>
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                      <div ref={feedEndRef} />
+                    </div>
                   )}
 
                   <AnimatePresence>
