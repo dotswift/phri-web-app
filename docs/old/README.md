@@ -1,6 +1,6 @@
 # PHRI — Personal Health Record & Insights (Frontend)
 
-A React/Vite frontend for the PHRI platform — a consent-first personal health record viewer with AI-powered chat, medication insights, and citation-grounded trust. Aggregates health data from three sources: Metriport (health information exchanges), Epic MyChart (direct EHR), and uploaded medical record PDFs.
+A React/Vite frontend for the PHRI platform — a consent-first personal health record viewer with AI-powered chat, medication insights, and citation-grounded trust.
 
 ## Quick Start
 
@@ -31,8 +31,6 @@ Copy `.env.example` to `.env` and fill in:
 | `VITE_SUPABASE_ANON_KEY` | Supabase anon (public) key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service-role key — only needed for E2E tests, never exposed in the frontend |
 
-`VITE_*` variables are exposed to the browser at build time. `SUPABASE_SERVICE_ROLE_KEY` is only loaded via dotenv in `global-setup.ts` for E2E test user management.
-
 ### Commands
 
 ```bash
@@ -43,8 +41,6 @@ npm run test         # Run unit tests (Vitest)
 npm run test:watch   # Unit tests in watch mode
 npm run test:e2e     # E2E tests (Playwright, headed)
 npm run test:e2e:ci  # E2E tests (Playwright, headless)
-npm run test:e2e:ui  # E2E tests in Playwright UI mode
-npm run test:demo    # Demo flow E2E test (headed)
 npm run lint         # ESLint
 ```
 
@@ -58,22 +54,18 @@ Browser (React SPA)
    ├── Supabase Auth (JWT)
    │
    └── PHRI Backend API ──┬── PostgreSQL (Prisma + pgvector)
-                          ├── Metriport Medical API (HIE)
-                          ├── Epic MyChart (EHR via FHIR)
-                          ├── Claude (AI chat + extraction)
+                          ├── Metriport Medical API (FHIR)
+                          ├── Claude (AI chat)
                           └── Voyage (embeddings)
 ```
 
 ### Frontend Stack
-- **React 19** + **Vite 7** + **TypeScript** — fast dev, type-safe
+- **React 19** + **Vite** + **TypeScript** — fast dev, type-safe
 - **React Router v7** — client-side routing with guard components
 - **Tailwind CSS v4** + **shadcn/ui** — Radix-based accessible components
 - **Supabase JS** — auth (JWT management, session persistence)
-- **Recharts** — health data visualizations with reference areas for lab ranges
-- **Motion v12** — page transitions and staggered list animations
-- **react-markdown** + **remark-gfm** — render AI chat responses with formatting
-- **Vitest** + **React Testing Library** — unit tests
-- **Playwright** + **axe-core** — E2E + accessibility testing
+- **react-markdown** — render AI chat responses with formatting
+- **Vitest** + **React Testing Library** — unit + integration tests
 
 ### Project Structure
 
@@ -81,48 +73,17 @@ Browser (React SPA)
 src/
 ├── components/
 │   ├── layout/       # AppLayout (sidebar nav + outlet)
-│   ├── charts/       # LabTrendChart, MedicationChangeSparkline, KpiCard
-│   ├── dashboard/    # HealthSnapshotCard, NeedsAttentionCard, DashboardTimeline
-│   ├── timeline/     # TimelineFilterBar, TimelineItemCard, TimelineList
-│   ├── shared/       # CitationBadge, ChatMessage, ConfirmDialog, ErrorBoundary, etc.
-│   └── ui/           # shadcn/ui auto-generated components (25+ primitives)
-├── context/          # AuthContext, ChatContext, HealthDataContext, UploadContext, + 3 more
-├── hooks/            # usePatientStatus, useEpicStatus, useTimelineData, useDocumentUpload, + 4 more
+│   ├── shared/       # CitationBadge, DetailDrawer, ChatMessage, ConfirmDialog, etc.
+│   └── ui/           # shadcn/ui auto-generated components
+├── context/          # AuthContext (user, consent, patient state)
+├── hooks/            # useAuth, useChat, usePatientStatus
 ├── lib/              # supabase.ts, api.ts (fetch wrapper), chat.ts (SSE)
-├── pages/            # 26 page components (see below)
+├── pages/            # All page components (11 pages)
 ├── types/            # TypeScript interfaces matching backend API
-├── router.tsx        # Routes with 3-layer guard wrappers
-├── App.tsx           # Root component with context providers
+├── router.tsx        # Routes with guard wrappers
+├── App.tsx           # Root component
 └── main.tsx          # Entry point
 ```
-
-### Pages (26)
-
-**Onboarding:** LoginPage, CheckEmailPage, ConsentPage, ProfileSetupPage, RecordsChoicePage, ConnectPage, ProgressPage
-
-**Data Source Connection:** UploadPage, UploadProgressPage, ProviderSearchPage, EpicProgressPage
-
-**Main App:** DashboardPage, RecordsCategoryGrid, TimelinePage, ConditionsPage, MedicationsPage, MedicationInsightsPage, LabResultsPage, ImmunizationsPage, VisitsPage, DocumentsPage, ChatPage, ExportPage, ProfilePage, SettingsPage
-
-**Lazy-loaded:** TimelinePage, MedicationInsightsPage, ImmunizationsPage, ConditionsPage, LabResultsPage, VisitsPage, DocumentsPage, ExportPage
-
-### Route Guards
-
-Three nested guard layers enforce the user flow:
-1. **RequireAuth** — redirects to `/login` if not authenticated
-2. **RequireConsent** — redirects to `/consent` if consent not given
-3. **RequirePatient** — redirects to `/records-choice` if no patient data ready
-
----
-
-## Documentation
-
-| Topic | Doc |
-|---|---|
-| Backend API integration | [docs/backend-integration-guide.md](docs/backend-integration-guide.md) |
-| UX design specification | [docs/design-spec.md](docs/design-spec.md) |
-| Accessibility (WCAG 2.1 AA) | [docs/accessibility.md](docs/accessibility.md) |
-| Testing guide | [docs/testing.md](docs/testing.md) |
 
 ---
 
@@ -133,10 +94,8 @@ The frontend is stateless — all data comes from the backend API. No PHI is sto
 Key entities (all server-side, Prisma-managed):
 - **User** — Supabase auth ID mapping
 - **Consent** — 3-flag consent record
-- **Patient** — demographics + sync status
-- **FhirResource** — normalized health records from all sources (Condition, Observation, etc.)
-- **DocumentUpload** — uploaded PDF processing status
-- **EpicConnection** — encrypted Epic OAuth tokens
+- **Patient** — linked Metriport persona + status
+- **FhirResource** — normalized health records (Condition, Observation, etc.)
 - **Embedding** — pgvector embeddings for RAG chat
 - **ChatSession / ChatMessage** — conversation history with citations
 
@@ -164,9 +123,6 @@ Users must explicitly consent to data usage, AI data flow, and acknowledge delet
 ### Citation-Grounded Trust
 Every piece of data — timeline items, medication records, chat responses — includes traceable citations back to the original FHIR resource. Users can always verify the source.
 
-### Multi-Source Aggregation
-Three data sources — Metriport (health information exchanges), Epic MyChart (direct EHR), and uploaded PDF medical records — feed into a unified FHIR record store. All features work identically regardless of data source.
-
 ### Cross-Provider Medication Insights
 The Deep Dive feature detects duplicate prescriptions across providers and tracks dosage changes over time — insights that are impossible when records are siloed.
 
@@ -180,19 +136,29 @@ Chat uses RAG with the patient's actual health records. Prompt injection is dete
 | Aspect | Current | At Scale |
 |---|---|---|
 | **Static assets** | Vite dev server | CDN (Vercel/CloudFront) |
-| **Bundle size** | Code splitting via React.lazy | Further chunk optimization |
-| **Data loading** | Pagination (timeline), debounced search | React Query for cache/dedup |
-| **State management** | React Context + local state | React Query for server state |
+| **Bundle size** | ~765KB (gzip: ~228KB) | Code splitting via dynamic imports |
+| **Data loading** | Full page fetch | Pagination (timeline), debounced search |
+| **State management** | React Context + local state | React Query for cache/dedup |
 | **Backend** | Vercel serverless | Same (auto-scales) |
 
 ---
 
-## Tradeoffs
+## Tradeoffs & What I'd Do Next
 
+### Tradeoffs Made
 - **React Context over Redux/Zustand** — sufficient for this scope, avoids dependency
 - **No React Query** — direct fetch + useState keeps it simple; would add for production caching
 - **shadcn/ui** — copy-paste components give full control vs. importing a component library
 - **Client-side grouping** (immunizations by year) — OK for small datasets; would move server-side for large ones
+
+### What I'd Add Next
+1. **React Query** — automatic caching, background refetch, optimistic updates
+2. **Code splitting** — lazy-load page components for smaller initial bundle
+3. **Offline support** — service worker for static assets, queued mutations
+4. **Accessibility audit** — keyboard navigation, screen reader testing, ARIA improvements
+5. **E2E tests** — Playwright tests for the full user flow
+6. **Dark mode toggle** — CSS variables are already set up for it
+7. **Real-time updates** — WebSocket or polling for live data sync notifications
 
 ---
 
